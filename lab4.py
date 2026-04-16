@@ -56,35 +56,42 @@ class RotationMethod:
             if max_off_diag < tolerance:
                 break
 
-            theta = RotationMethod.calculate_rotation_angle(A_k, p, q)
+            if abs(A_k[p, q]) < 1e-12:
+                break
+
+            if abs(A_k[p, p] - A_k[q, q]) < 1e-12:
+                theta = np.pi / 4
+            else:
+                theta = 0.5 * np.arctan2(2 * A_k[p, q], A_k[q, q] - A_k[p, p])
+
             c = np.cos(theta)
             s = np.sin(theta)
 
-            app_old = A_k[p, p]
-            aqq_old = A_k[q, q]
-            apq_old = A_k[p, q]
+            app = A_k[p, p]
+            aqq = A_k[q, q]
+            apq = A_k[p, q]
 
             for j in range(n):
                 if j != p and j != q:
-                    apj_old = A_k[p, j]
-                    aqj_old = A_k[q, j]
+                    apj = A_k[p, j]
+                    aqj = A_k[q, j]
 
-                    A_k[p, j] = c * apj_old + s * aqj_old
+                    A_k[p, j] = c * apj - s * aqj
                     A_k[j, p] = A_k[p, j]
 
-                    A_k[q, j] = -s * apj_old + c * aqj_old
+                    A_k[q, j] = s * apj + c * aqj
                     A_k[j, q] = A_k[q, j]
 
-            A_k[p, p] = c * c * app_old + 2 * c * s * apq_old + s * s * aqq_old
-            A_k[q, q] = s * s * app_old - 2 * c * s * apq_old + c * c * aqq_old
+            A_k[p, p] = c * c * app - 2 * s * c * apq + s * s * aqq
+            A_k[q, q] = s * s * app + 2 * s * c * apq + c * c * aqq
             A_k[p, q] = 0.0
             A_k[q, p] = 0.0
 
             for i in range(n):
                 vip = V[i, p]
                 viq = V[i, q]
-                V[i, p] = c * vip + s * viq
-                V[i, q] = -s * vip + c * viq
+                V[i, p] = c * vip - s * viq
+                V[i, q] = s * vip + c * viq
 
             iterations += 1
 
