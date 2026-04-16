@@ -35,10 +35,12 @@ class IterativeSolvers:
             x_new = np.zeros(n)
 
             for i in range(n):
-                sum_ax = 0.0
+                s = 0.0
                 for j in range(n):
-                    sum_ax += A[i, j] * x[j]
-                x_new[i] = x[i] - (sum_ax - b[i]) / A[i, i]
+                    if j != i:
+                        s += A[i, j] * x[j]
+
+                x_new[i] = (b[i] - s) / A[i, i]
 
             error = np.linalg.norm(x_new - x, np.inf)
             residual = np.dot(A, x_new) - b
