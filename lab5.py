@@ -87,7 +87,8 @@ class QRAlgorithm:
             Ak = Ak_next
             iterations = iteration + 1
         
-        for i in range(n):
+        i = 0
+        while i < n:
             if i < n-1 and abs(Ak[i+1, i]) > tolerance:
                 a = Ak[i, i]
                 b = Ak[i, i+1]
@@ -107,9 +108,10 @@ class QRAlgorithm:
                     eigenvalues[i] = (trace + np.sqrt(discriminant)) / 2
                     eigenvalues[i+1] = (trace - np.sqrt(discriminant)) / 2
                 
-                i += 1
+                i += 2
             else:
                 eigenvalues[i] = Ak[i, i]
+                i += 1
         
         converged = off_diag_norm < tolerance
         return eigenvalues, iterations, history, Ak, converged
@@ -121,12 +123,7 @@ class QRAlgorithm:
         errors = []
         
         for ev in eigenvalues:
-            if np.iscomplex(ev):
-                ev_real = ev.real
-                ev_imag = ev.imag
-                error = np.linalg.det(A - ev_real * np.eye(n))
-            else:
-                error = np.linalg.det(A - ev * np.eye(n))
+            error = np.linalg.det(A.astype(complex) - ev * np.eye(n, dtype=complex))
             errors.append(abs(error))
         
         return errors
@@ -968,6 +965,11 @@ class MainWindow(QMainWindow):
         self.input_button = QPushButton("Ввести матрицу 3x3")
         self.input_button.clicked.connect(self.input_matrix)
         button_layout.addWidget(self.input_button)
+
+        self.numpy_check_button = QPushButton("Проверка через NumPy")
+        self.numpy_check_button.clicked.connect(self.show_numpy_check)
+        self.numpy_check_button.setEnabled(False)
+        button_layout.addWidget(self.numpy_check_button)
         
         clear_button = QPushButton("Очистить все")
         clear_button.setStyleSheet("""
@@ -1019,10 +1021,15 @@ class MainWindow(QMainWindow):
             eigenvalues, iterations, history, Ak_final, converged = QRAlgorithm.qr_algorithm_eigenvalues(
                 self.A, tolerance, max_iter
             )
+            self.last_eigenvalues = eigenvalues
+            self.last_iterations = iterations
+            self.last_tolerance = tolerance
+            self.last_converged = converged
             
             self.results_widget.display_results(
                 self.A, eigenvalues, iterations, history, Ak_final, converged, tolerance
             )
+            self.numpy_check_button.setEnabled(True)
             
             if converged:
                 self.statusBar().showMessage(f"Вычисления завершены успешно за {iterations} итераций")
@@ -1032,6 +1039,51 @@ class MainWindow(QMainWindow):
         except Exception as e:
             QMessageBox.critical(self, "Ошибка", f"Ошибка при вычислении:\n{str(e)}")
             self.statusBar().showMessage("Ошибка при вычислении")
+
+    def show_numpy_check(self):
+        if not hasattr(self, 'A') or not hasattr(self, 'last_eigenvalues'):
+            QMessageBox.warning(self, "Проверка NumPy", "Сначала выполните расчёт.")
+            return
+
+        numpy_values = np.linalg.eigvals(self.A)
+        ours = np.array(self.last_eigenvalues, dtype=complex)
+
+        remaining = list(numpy_values)
+        pairs = []
+        max_diff = 0.0
+        for value in ours:
+            idx = min(range(len(remaining)), key=lambda k: abs(value - remaining[k]))
+            np_value = remaining.pop(idx)
+            diff = abs(value - np_value)
+            max_diff = max(max_diff, diff)
+            pairs.append((value, np_value, diff))
+
+        our_errors = QRAlgorithm.verify_eigenvalues(self.A, ours)
+        numpy_errors = QRAlgorithm.verify_eigenvalues(self.A, numpy_values)
+
+        def fmt(z):
+            z = complex(z)
+            if abs(z.imag) < 1e-12:
+                return f"{z.real:.10f}"
+            sign = "+" if z.imag >= 0 else "-"
+            return f"{z.real:.10f} {sign} {abs(z.imag):.10f}i"
+
+        lines = [
+            "Сравнение QR-алгоритма с np.linalg.eigvals",
+            "",
+            "Пары значений: наш метод  |  NumPy  |  разница",
+        ]
+        for own, np_value, diff in pairs:
+            lines.append(f"{fmt(own)}  |  {fmt(np_value)}  |  {diff:.2e}")
+
+        lines.extend([
+            "",
+            f"Максимальная разница: {max_diff:.2e}",
+            f"Максимальная невязка нашего метода |det(A-λI)|: {max(our_errors):.2e}",
+            f"Максимальная невязка NumPy |det(A-λI)|: {max(numpy_errors):.2e}",
+            f"Статус QR-сходимости: {'достигнута' if self.last_converged else 'не достигнута'}",
+        ])
+        QMessageBox.information(self, "Проверка через NumPy", "\n".join(lines))
     
     def clear_results(self):
         """Очистка результатов"""
@@ -1044,6 +1096,7 @@ class MainWindow(QMainWindow):
         self.results_widget.verification_label.setText("")
         self.results_widget.convergence_graph.axes.clear()
         self.results_widget.convergence_graph.draw()
+        self.numpy_check_button.setEnabled(False)
         self.statusBar().showMessage("Результаты очищены")
 
 

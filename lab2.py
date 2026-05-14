@@ -1,9 +1,5 @@
 import sys
-from PyQt5.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QGridLayout, QLabel, QPushButton, QDialog, QLineEdit, QMessageBox,
-    QTableWidget, QTableWidgetItem, QTabWidget, QFrame, QProgressBar
-)
+from PyQt5.QtWidgets import *
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont, QDoubleValidator, QColor, QBrush
 

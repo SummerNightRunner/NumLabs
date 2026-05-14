@@ -457,6 +457,10 @@ class MainWindow(QMainWindow):
         self.solve_btn.clicked.connect(self.solve_system)
         self.solve_btn.setStyleSheet("background-color: #4CAF50;")
         btn_layout.addWidget(self.solve_btn)
+        self.numpy_check_btn = QPushButton("Проверка NumPy")
+        self.numpy_check_btn.clicked.connect(self.show_numpy_check)
+        self.numpy_check_btn.setEnabled(False)
+        btn_layout.addWidget(self.numpy_check_btn)
         self.clear_btn = QPushButton("Очистить")
         self.clear_btn.setStyleSheet("background-color: #f44336;")
         self.clear_btn.clicked.connect(self.clear_all)
@@ -654,6 +658,12 @@ class MainWindow(QMainWindow):
             return
         
         self.current_history = history
+        self.current_solution = (rx, ry)
+        self.current_method = method
+        self.current_a = a
+        self.current_converged = conv
+        self.current_tolerance = tol
+        self.numpy_check_btn.setEnabled(True)
         
         if conv:
             self.solution_info.setText(
@@ -696,6 +706,47 @@ class MainWindow(QMainWindow):
         
         self.tab_widget.setCurrentIndex(1)
         self.statusBar().showMessage(f"Завершено. Итераций: {iters}")
+
+    def show_numpy_check(self):
+        if not hasattr(self, 'current_solution'):
+            QMessageBox.warning(self, "Проверка NumPy", "Сначала решите систему.")
+            return
+
+        rx, ry = self.current_solution
+        a = self.current_a
+        F_val = self.solver.F(rx, ry, a)
+        J_val = self.solver.J(rx, ry, a)
+
+        if F_val is None or J_val is None:
+            QMessageBox.warning(self, "Проверка NumPy", "Не удалось вычислить F или якобиан в найденной точке.")
+            return
+
+        norm_f = np.linalg.norm(F_val)
+        lines = [
+            "Проверка результата",
+            "",
+            f"Метод лабораторной: {self.current_method}",
+            f"Найденное решение: x = {rx:.12f}, y = {ry:.12f}",
+            f"Невязка ||F(x,y)|| = {norm_f:.2e}",
+            "",
+            "Контрольная NumPy-проверка через np.linalg.solve:",
+        ]
+
+        try:
+            delta = np.linalg.solve(J_val, -F_val)
+            corrected = np.array([rx, ry]) + delta
+            F_corrected = self.solver.F(corrected[0], corrected[1], a)
+            lines.extend([
+                f"Ньютоновская поправка Δ = {np.array2string(delta, precision=10)}",
+                f"Норма поправки ||Δ|| = {np.linalg.norm(delta):.2e}",
+                f"Точка после одной контрольной поправки: x = {corrected[0]:.12f}, y = {corrected[1]:.12f}",
+                f"||F|| после поправки = {np.linalg.norm(F_corrected):.2e}",
+            ])
+        except Exception as e:
+            lines.append(f"np.linalg.solve не смог решить систему для поправки: {e}")
+
+        lines.append(f"Статус сходимости метода: {'достигнута' if self.current_converged else 'не достигнута'}")
+        QMessageBox.information(self, "Проверка через NumPy", "\n".join(lines))
     
     def clear_all(self):
         self.f1_edit.clear()
@@ -716,6 +767,7 @@ class MainWindow(QMainWindow):
         self.convergence_graph.axes.clear()
         self.convergence_graph.draw()
         self.current_history = []
+        self.numpy_check_btn.setEnabled(False)
         self.statusBar().showMessage("Очищено")
 
 

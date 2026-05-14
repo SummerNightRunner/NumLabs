@@ -454,6 +454,10 @@ class MainWindow(QMainWindow):
         self.solve_btn.clicked.connect(self.solve_equation)
         self.solve_btn.setStyleSheet("background-color: #4CAF50;")
         btn_layout.addWidget(self.solve_btn)
+        self.numpy_check_btn = QPushButton("Проверка NumPy")
+        self.numpy_check_btn.clicked.connect(self.show_numpy_check)
+        self.numpy_check_btn.setEnabled(False)
+        btn_layout.addWidget(self.numpy_check_btn)
         self.clear_btn = QPushButton("Очистить")
         self.clear_btn.setStyleSheet("background-color: #f44336;")
         self.clear_btn.clicked.connect(self.clear_all)
@@ -661,6 +665,11 @@ class MainWindow(QMainWindow):
             return
         
         self.current_history = history
+        self.current_root = root
+        self.current_method = method
+        self.current_converged = converged
+        self.current_tolerance = tol
+        self.numpy_check_btn.setEnabled(True)
         
         if converged:
             self.solution_info.setText(
@@ -704,6 +713,51 @@ class MainWindow(QMainWindow):
         
         self.tab_widget.setCurrentIndex(1)
         self.statusBar().showMessage(f"Решение завершено. Итераций: {iters}")
+
+    def show_numpy_check(self):
+        if not hasattr(self, 'current_root') or self.solver.f_expr is None:
+            QMessageBox.warning(self, "Проверка NumPy", "Сначала решите уравнение.")
+            return
+
+        root = self.current_root
+        residual = abs(self.solver.f(root))
+        lines = [
+            "Проверка результата",
+            "",
+            f"Метод лабораторной: {self.current_method}",
+            f"Найденный корень: x = {root:.12f}",
+            f"Невязка |f(x)| = {residual:.2e}",
+        ]
+
+        try:
+            poly = sp.Poly(self.solver.f_expr, self.solver.x_symbol)
+            coeffs = [float(c) for c in poly.all_coeffs()]
+            np_roots = np.roots(coeffs)
+            real_roots = [r.real for r in np_roots if abs(r.imag) < 1e-8]
+
+            lines.extend([
+                "",
+                "NumPy-проверка для полинома через np.roots:",
+                f"Коэффициенты: {coeffs}",
+                f"Корни NumPy: {np.array2string(np_roots, precision=10)}",
+            ])
+
+            if real_roots:
+                nearest = min(real_roots, key=lambda r: abs(r - root))
+                lines.extend([
+                    f"Ближайший действительный корень NumPy: {nearest:.12f}",
+                    f"Разница с нашим корнем: {abs(root - nearest):.2e}",
+                ])
+            else:
+                lines.append("Действительных корней NumPy рядом не найдено.")
+        except Exception:
+            lines.extend([
+                "",
+                "NumPy не имеет универсального встроенного метода для произвольных нелинейных уравнений.",
+                "Для неполиномиальной функции основная проверка здесь - малая невязка |f(x)|.",
+            ])
+
+        QMessageBox.information(self, "Проверка через NumPy", "\n".join(lines))
     
     def clear_all(self):
         self.f_edit.clear()
@@ -721,6 +775,7 @@ class MainWindow(QMainWindow):
         self.convergence_graph.axes.clear()
         self.convergence_graph.draw()
         self.current_history = []
+        self.numpy_check_btn.setEnabled(False)
         self.statusBar().showMessage("Очищено")
 
 

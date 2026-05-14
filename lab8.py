@@ -254,6 +254,10 @@ class MainWindow(QMainWindow):
         self.calc_b_btn = QPushButton("Вычислить для задачи (б)")
         self.calc_b_btn.clicked.connect(lambda: self.calculate('b'))
         btn_layout.addWidget(self.calc_b_btn)
+        self.numpy_check_btn = QPushButton("Проверка NumPy")
+        self.numpy_check_btn.clicked.connect(self.show_numpy_check)
+        self.numpy_check_btn.setEnabled(False)
+        btn_layout.addWidget(self.numpy_check_btn)
         self.clear_btn = QPushButton("Очистить всё")
         self.clear_btn.setStyleSheet("background-color: #f44336;")
         self.clear_btn.clicked.connect(self.clear_all)
@@ -388,7 +392,13 @@ class MainWindow(QMainWindow):
         results += f"Узлы интерполяции: Xi = {x_vals}\nYi = {[f'{y:.6f}' for y in y_vals]}\n\n"
         results += f"Многочлен Лагранжа L(x) = {L_expr}\n"
         results += f"Многочлен Ньютона N(x) = {N_expr}\n"
-        results += f"Проверка совпадения: L(x) - N(x) = {sp.simplify(L_expr - N_expr)}\n\n"
+        diff_expr = sp.simplify(L_expr - N_expr)
+        node_errors = []
+        L_func = sp.lambdify(self.solver.x_sym, L_expr, modules=['numpy', 'math'])
+        for x_val, y_val in zip(x_vals, y_vals):
+            node_errors.append(abs(float(L_func(x_val)) - y_val))
+        results += f"Проверка совпадения: L(x) - N(x) = {diff_expr}\n"
+        results += f"Проверка узлов max|P(Xi)-Yi| = {max(node_errors):.6e}\n\n"
         
         if x_star is not None:
             err_L = self.solver.interpolation_error(x_star, x_vals, y_vals, L_expr)
@@ -408,9 +418,53 @@ class MainWindow(QMainWindow):
         self.current_x_points = x_vals
         self.current_y_points = y_vals
         self.current_x_star = x_star
+        self.numpy_check_btn.setEnabled(True)
         self.update_graph()
         
         self.statusBar().showMessage(f"Вычисление для задачи ({task}) завершено")
+
+    def show_numpy_check(self):
+        if not getattr(self, 'current_x_points', None) or getattr(self, 'current_L', None) is None:
+            QMessageBox.warning(self, "Проверка NumPy", "Сначала выполните интерполяцию.")
+            return
+
+        x_points = np.array(self.current_x_points, dtype=float)
+        y_points = np.array(self.current_y_points, dtype=float)
+        degree = len(x_points) - 1
+        np_coeffs = np.polyfit(x_points, y_points, degree)
+        np_poly = np.poly1d(np_coeffs)
+        L_func = sp.lambdify(self.solver.x_sym, self.current_L, modules=['numpy', 'math'])
+
+        node_diff = np.max(np.abs(np_poly(x_points) - y_points))
+        compare_points = np.linspace(min(x_points), max(x_points), 20)
+        method_values = np.array([float(L_func(x)) for x in compare_points])
+        numpy_values = np_poly(compare_points)
+        max_diff = np.max(np.abs(method_values - numpy_values))
+
+        lines = [
+            "Сравнение интерполяции с np.polyfit",
+            "",
+            f"Степень многочлена: {degree}",
+            f"Коэффициенты NumPy: {np.array2string(np_coeffs, precision=10)}",
+            f"Проверка узлов NumPy max|P_np(Xi)-Yi| = {node_diff:.2e}",
+            f"Максимальная разница нашего P(x) и NumPy на сетке: {max_diff:.2e}",
+        ]
+
+        if self.current_x_star is not None:
+            x_star = self.current_x_star
+            own_value = float(L_func(x_star))
+            numpy_value = float(np_poly(x_star))
+            true_value = float(self.solver.f_lambdified(x_star))
+            lines.extend([
+                "",
+                f"В точке X* = {x_star:.12f}:",
+                f"Наш P(X*) = {own_value:.12f}",
+                f"NumPy P_np(X*) = {numpy_value:.12f}",
+                f"f(X*) = {true_value:.12f}",
+                f"|P(X*) - P_np(X*)| = {abs(own_value - numpy_value):.2e}",
+            ])
+
+        QMessageBox.information(self, "Проверка через NumPy", "\n".join(lines))
     
     def update_graph(self):
         if self.solver.f_lambdified is None:
@@ -443,6 +497,7 @@ class MainWindow(QMainWindow):
         self.current_x_points = []
         self.current_y_points = []
         self.current_x_star = None
+        self.numpy_check_btn.setEnabled(False)
         self.graph.axes.clear()
         self.graph.draw()
         self.statusBar().showMessage("Очищено")

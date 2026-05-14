@@ -9,8 +9,6 @@ from PyQt5.QtGui import QFont, QDoubleValidator, QColor, QBrush
 
 
 class LUDecomposition:
-    """Класс для LU-разложения с выбором главного элемента без numpy"""
-
     EPS = 1e-10
 
     @staticmethod
@@ -73,6 +71,20 @@ class LUDecomposition:
                 result[i][j] = s
 
         return result
+
+    @staticmethod
+    def max_deviation_from_identity(M):
+        n = len(M)
+        max_dev = 0.0
+
+        for i in range(n):
+            for j in range(n):
+                expected = 1.0 if i == j else 0.0
+                dev = abs(M[i][j] - expected)
+                if dev > max_dev:
+                    max_dev = dev
+
+        return max_dev
 
     @staticmethod
     def lu_decomposition_with_pivoting(A):
@@ -208,8 +220,6 @@ class LUDecomposition:
 
 
 class MatrixInputDialog(QDialog):
-    """Диалог для ввода матрицы и правой части"""
-
     def __init__(self, n=4):
         super().__init__()
         self.n = n
@@ -353,8 +363,6 @@ class MatrixInputDialog(QDialog):
 
 
 class ResultsWidget(QWidget):
-    """Виджет для отображения результатов"""
-
     def __init__(self):
         super().__init__()
         self.init_ui()
@@ -531,14 +539,45 @@ class ResultsWidget(QWidget):
         """)
         layout.addWidget(self.inv_table)
 
+        check_title = QLabel("Проверка A · A^{-1}")
+        check_title.setFont(QFont("Arial", 12, QFont.Bold))
+        check_title.setAlignment(Qt.AlignCenter)
+        check_title.setStyleSheet("color: #673AB7; margin-top: 10px;")
+        layout.addWidget(check_title)
+
+        self.identity_check_table = QTableWidget()
+        self.identity_check_table.setAlternatingRowColors(True)
+        self.identity_check_table.setStyleSheet("""
+            QTableWidget {
+                gridline-color: #ddd;
+                font-size: 12px;
+            }
+            QTableWidget::item {
+                padding: 8px;
+            }
+            QHeaderView::section {
+                background-color: #673AB7;
+                color: white;
+                padding: 8px;
+                font-size: 12px;
+                font-weight: bold;
+            }
+        """)
+        layout.addWidget(self.identity_check_table)
+
         self.verification_label = QLabel()
         self.verification_label.setAlignment(Qt.AlignCenter)
         self.verification_label.setStyleSheet("padding: 10px; background-color: #f3e5f5; border-radius: 5px; margin-top: 10px;")
         layout.addWidget(self.verification_label)
 
+        self.identity_check_label = QLabel()
+        self.identity_check_label.setAlignment(Qt.AlignCenter)
+        self.identity_check_label.setStyleSheet("padding: 10px; background-color: #ede7f6; border-radius: 5px; margin-top: 10px;")
+        layout.addWidget(self.identity_check_label)
+
         self.inv_tab.setLayout(layout)
 
-    def display_results(self, x, residual, det, inv_A):
+    def display_results(self, x, residual, det, inv_A, identity_check, identity_deviation):
         self.solution_table.setRowCount(len(x))
         for i, val in enumerate(x):
             var_item = QTableWidgetItem(f"x{i+1}")
@@ -642,7 +681,47 @@ class ResultsWidget(QWidget):
                 self.inv_table.setItem(i, j, item)
 
         self.inv_table.resizeColumnsToContents()
-        self.verification_label.setText("Проверка: A * A^{-1} должна быть единичной матрицей")
+        self.verification_label.setText("Проверка: обратная матрица найдена через решение n систем A·x = e_i")
+
+        n_check = len(identity_check)
+        self.identity_check_table.setRowCount(n_check)
+        self.identity_check_table.setColumnCount(n_check)
+        self.identity_check_table.setHorizontalHeaderLabels([f"x{i+1}" for i in range(n_check)])
+
+        for i in range(n_check):
+            for j in range(n_check):
+                item = QTableWidgetItem(f"{identity_check[i][j]:.6f}")
+                item.setTextAlignment(Qt.AlignCenter)
+
+                expected = 1.0 if i == j else 0.0
+                if abs(identity_check[i][j] - expected) < 1e-6:
+                    item.setForeground(QBrush(QColor(76, 175, 80)))
+                else:
+                    item.setForeground(QBrush(QColor(244, 67, 54)))
+
+                self.identity_check_table.setItem(i, j, item)
+
+        self.identity_check_table.resizeColumnsToContents()
+
+        if identity_deviation < 1e-10:
+            self.identity_check_label.setText("Отлично! A · A^{-1} практически совпадает с единичной матрицей")
+            self.identity_check_label.setStyleSheet(
+                "padding: 10px; background-color: #c8e6c9; color: #2e7d32; border-radius: 5px; margin-top: 10px;"
+            )
+        elif identity_deviation < 1e-6:
+            self.identity_check_label.setText(
+                f"Проверка пройдена с небольшой погрешностью. Макс. отклонение: {identity_deviation:.2e}"
+            )
+            self.identity_check_label.setStyleSheet(
+                "padding: 10px; background-color: #fff3e0; color: #e65100; border-radius: 5px; margin-top: 10px;"
+            )
+        else:
+            self.identity_check_label.setText(
+                f"Большое отклонение от единичной матрицы! Макс. отклонение: {identity_deviation:.2e}"
+            )
+            self.identity_check_label.setStyleSheet(
+                "padding: 10px; background-color: #ffebee; color: #c62828; border-radius: 5px; margin-top: 10px;"
+            )
 
     def clear_bars(self):
         while self.solution_bars_layout.count():
@@ -658,7 +737,7 @@ class MainWindow(QMainWindow):
 
     def init_ui(self):
         self.setWindowTitle("Решение СЛАУ методом LU-разложения")
-        self.setGeometry(100, 100, 1000, 800)
+        self.setGeometry(100, 100, 1000, 850)
 
         self.setStyleSheet("""
             QMainWindow {
@@ -755,7 +834,12 @@ class MainWindow(QMainWindow):
             inv_A = LUDecomposition.inverse_matrix(A)
             residual = LUDecomposition.calculate_residual(A, x, b)
 
-            self.results_widget.display_results(x, residual, det, inv_A)
+            identity_check = LUDecomposition.multiply_matrices(A, inv_A)
+            identity_deviation = LUDecomposition.max_deviation_from_identity(identity_check)
+
+            self.results_widget.display_results(
+                x, residual, det, inv_A, identity_check, identity_deviation
+            )
             self.statusBar().showMessage("Решение успешно найдено")
 
         except ValueError as e:
@@ -770,10 +854,12 @@ class MainWindow(QMainWindow):
         self.results_widget.solution_table.setRowCount(0)
         self.results_widget.residual_table.setRowCount(0)
         self.results_widget.inv_table.setRowCount(0)
+        self.results_widget.identity_check_table.setRowCount(0)
         self.results_widget.det_value.setText("—")
         self.results_widget.det_warning.setText("")
         self.results_widget.residual_status.setText("")
         self.results_widget.verification_label.setText("")
+        self.results_widget.identity_check_label.setText("")
         self.results_widget.clear_bars()
         self.statusBar().showMessage("Результаты очищены")
 

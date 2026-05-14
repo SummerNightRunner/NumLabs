@@ -1,5 +1,4 @@
 import sys
-import numpy as np
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont, QDoubleValidator, QColor, QBrush
@@ -7,11 +6,49 @@ from PyQt5.QtGui import QFont, QDoubleValidator, QColor, QBrush
 
 class IterativeSolvers:
     @staticmethod
+    def zero_vector(n):
+        return [0.0 for _ in range(n)]
+
+    @staticmethod
+    def copy_vector(v):
+        return v[:]
+
+    @staticmethod
+    def inf_norm_vector(v):
+        max_val = 0.0
+        for value in v:
+            if abs(value) > max_val:
+                max_val = abs(value)
+        return max_val
+
+    @staticmethod
+    def subtract_vectors(a, b):
+        n = len(a)
+        result = [0.0] * n
+        for i in range(n):
+            result[i] = a[i] - b[i]
+        return result
+
+    @staticmethod
+    def multiply_matrix_vector(A, x):
+        n = len(A)
+        result = [0.0] * n
+        for i in range(n):
+            s = 0.0
+            for j in range(n):
+                s += A[i][j] * x[j]
+            result[i] = s
+        return result
+
+    @staticmethod
     def is_diagonally_dominant(A):
         n = len(A)
         for i in range(n):
-            diag = abs(A[i, i])
-            off_diag = sum(abs(A[i, j]) for j in range(n) if j != i)
+            diag = abs(A[i][i])
+            off_diag = 0.0
+            for j in range(n):
+                if j != i:
+                    off_diag += abs(A[i][j])
             if diag <= off_diag:
                 return False
         return True
@@ -20,37 +57,62 @@ class IterativeSolvers:
     def has_zero_on_diagonal(A):
         n = len(A)
         for i in range(n):
-            if abs(A[i, i]) < 1e-12:
+            if abs(A[i][i]) < 1e-12:
                 return True
         return False
 
     @staticmethod
+    def jacobi_iteration_matrix_norm(A):
+        n = len(A)
+        max_row_sum = 0.0
+
+        for i in range(n):
+            row_sum = 0.0
+            for j in range(n):
+                if j != i:
+                    row_sum += abs(A[i][j] / A[i][i])
+
+            if row_sum > max_row_sum:
+                max_row_sum = row_sum
+
+        return max_row_sum
+
+    @staticmethod
     def simple_iteration(A, b, tolerance, max_iterations=10000):
         n = len(A)
-        x = np.zeros(n)
+        x = IterativeSolvers.zero_vector(n)
         errors = []
         residual_norms = []
 
+        q = IterativeSolvers.jacobi_iteration_matrix_norm(A)
+
         for iteration in range(max_iterations):
-            x_new = np.zeros(n)
+            x_new = IterativeSolvers.zero_vector(n)
 
             for i in range(n):
                 s = 0.0
                 for j in range(n):
                     if j != i:
-                        s += A[i, j] * x[j]
+                        s += A[i][j] * x[j]
 
-                x_new[i] = (b[i] - s) / A[i, i]
+                x_new[i] = (b[i] - s) / A[i][i]
 
-            error = np.linalg.norm(x_new - x, np.inf)
-            residual = np.dot(A, x_new) - b
-            residual_norm = np.linalg.norm(residual, np.inf)
+            diff = IterativeSolvers.subtract_vectors(x_new, x)
+            error = IterativeSolvers.inf_norm_vector(diff)
+
+            residual = IterativeSolvers.residual(A, b, x_new)
+            residual_norm = IterativeSolvers.inf_norm_vector(residual)
 
             errors.append(error)
             residual_norms.append(residual_norm)
 
-            if error < tolerance:
-                return x_new, iteration + 1, errors, residual_norms, True
+            if q < 1:
+                estimated_error = q / (1 - q) * error
+                if estimated_error < tolerance:
+                    return x_new, iteration + 1, errors, residual_norms, True
+            else:
+                if error < tolerance:
+                    return x_new, iteration + 1, errors, residual_norms, True
 
             x = x_new
 
@@ -59,27 +121,29 @@ class IterativeSolvers:
     @staticmethod
     def seidel_method(A, b, tolerance, max_iterations=10000):
         n = len(A)
-        x = np.zeros(n)
+        x = IterativeSolvers.zero_vector(n)
         errors = []
         residual_norms = []
 
         for iteration in range(max_iterations):
-            x_new = x.copy()
+            x_new = IterativeSolvers.copy_vector(x)
 
             for i in range(n):
                 sum1 = 0.0
                 for j in range(i):
-                    sum1 += A[i, j] * x_new[j]
+                    sum1 += A[i][j] * x_new[j]
 
                 sum2 = 0.0
                 for j in range(i + 1, n):
-                    sum2 += A[i, j] * x[j]
+                    sum2 += A[i][j] * x[j]
 
-                x_new[i] = (b[i] - sum1 - sum2) / A[i, i]
+                x_new[i] = (b[i] - sum1 - sum2) / A[i][i]
 
-            error = np.linalg.norm(x_new - x, np.inf)
-            residual = np.dot(A, x_new) - b
-            residual_norm = np.linalg.norm(residual, np.inf)
+            diff = IterativeSolvers.subtract_vectors(x_new, x)
+            error = IterativeSolvers.inf_norm_vector(diff)
+
+            residual = IterativeSolvers.residual(A, b, x_new)
+            residual_norm = IterativeSolvers.inf_norm_vector(residual)
 
             errors.append(error)
             residual_norms.append(residual_norm)
@@ -93,7 +157,8 @@ class IterativeSolvers:
 
     @staticmethod
     def residual(A, b, x):
-        return np.dot(A, x) - b
+        Ax = IterativeSolvers.multiply_matrix_vector(A, x)
+        return IterativeSolvers.subtract_vectors(Ax, b)
 
 
 class MatrixInputDialog(QDialog):
@@ -207,7 +272,7 @@ class MatrixInputDialog(QDialog):
             }
         """)
         example_layout = QVBoxLayout(example_frame)
-        example_label = QLabel("Пример для вашей системы (4×4):")
+        example_label = QLabel("Пример для системы 4×4:")
         example_label.setFont(QFont("Arial", 10, QFont.Bold))
         example_layout.addWidget(example_label)
         example_text = QLabel(
@@ -234,16 +299,18 @@ class MatrixInputDialog(QDialog):
 
     def get_system(self):
         try:
-            A = np.zeros((self.n, self.n))
-            b = np.zeros(self.n)
+            A = []
+            b = []
 
             for i in range(self.n):
+                row = []
                 for j in range(self.n):
                     text = self.matrix_inputs[i][j].text()
-                    A[i, j] = float(text) if text.strip() else 0.0
+                    row.append(float(text) if text.strip() else 0.0)
+                A.append(row)
 
                 text = self.vector_inputs[i].text()
-                b[i] = float(text) if text.strip() else 0.0
+                b.append(float(text) if text.strip() else 0.0)
 
             return A, b
         except ValueError:
@@ -437,6 +504,7 @@ class ResultsWidget(QWidget):
                 padding: 8px 15px;
                 margin: 2px;
                 border-radius: 5px;
+                font-weight: bold;
             }
             QTabBar::tab:selected {
                 background-color: #4CAF50;
@@ -456,6 +524,10 @@ class ResultsWidget(QWidget):
         self.setup_comparison_tab()
         self.tab_widget.addTab(self.comparison_tab, "Сравнение методов")
 
+        self.check_tab = QWidget()
+        self.setup_check_tab()
+        self.tab_widget.addTab(self.check_tab, "Проверка")
+
         layout.addWidget(self.tab_widget)
         self.setLayout(layout)
 
@@ -463,8 +535,9 @@ class ResultsWidget(QWidget):
         layout = QVBoxLayout()
 
         self.method_label = QLabel()
-        self.method_label.setFont(QFont("Arial", 12, QFont.Bold))
+        self.method_label.setFont(QFont("Arial", 13, QFont.Bold))
         self.method_label.setAlignment(Qt.AlignCenter)
+        self.method_label.setStyleSheet("color: #2e7d32; padding: 6px;")
         layout.addWidget(self.method_label)
 
         self.solution_table = QTableWidget()
@@ -491,16 +564,31 @@ class ResultsWidget(QWidget):
 
         self.iter_info = QLabel()
         self.iter_info.setAlignment(Qt.AlignCenter)
-        self.iter_info.setStyleSheet("padding: 10px; background-color: #e3f2fd; border-radius: 5px;")
+        self.iter_info.setStyleSheet("""
+            padding: 12px;
+            background-color: #e3f2fd;
+            border-radius: 5px;
+            color: #0d47a1;
+            font-size: 14px;
+            font-weight: bold;
+        """)
         layout.addWidget(self.iter_info)
 
         self.residual_info = QLabel()
         self.residual_info.setAlignment(Qt.AlignCenter)
-        self.residual_info.setStyleSheet("padding: 10px; background-color: #f3e5f5; border-radius: 5px;")
+        self.residual_info.setStyleSheet("""
+            padding: 12px;
+            background-color: #f3e5f5;
+            border-radius: 5px;
+            color: #6a1b9a;
+            font-size: 14px;
+            font-weight: bold;
+        """)
         layout.addWidget(self.residual_info)
 
         self.convergence_status = QLabel()
         self.convergence_status.setAlignment(Qt.AlignCenter)
+        self.convergence_status.setStyleSheet("font-size: 14px; padding: 6px;")
         layout.addWidget(self.convergence_status)
 
         self.solution_tab.setLayout(layout)
@@ -510,6 +598,7 @@ class ResultsWidget(QWidget):
 
         self.iter_plot_label = QLabel("История сходимости")
         self.iter_plot_label.setAlignment(Qt.AlignCenter)
+        self.iter_plot_label.setStyleSheet("font-size: 13px; font-weight: bold;")
         layout.addWidget(self.iter_plot_label)
 
         self.iter_table = QTableWidget()
@@ -539,6 +628,11 @@ class ResultsWidget(QWidget):
     def setup_comparison_tab(self):
         layout = QVBoxLayout()
 
+        comparison_title = QLabel("Сравнение метода Якоби и метода Зейделя")
+        comparison_title.setAlignment(Qt.AlignCenter)
+        comparison_title.setStyleSheet("font-size: 14px; font-weight: bold; color: #6a1b9a; padding: 6px;")
+        layout.addWidget(comparison_title)
+
         self.comparison_table = QTableWidget()
         self.comparison_table.setColumnCount(6)
         self.comparison_table.setHorizontalHeaderLabels(["Метод", "Итераций", "x1", "x2", "x3", "x4"])
@@ -546,10 +640,10 @@ class ResultsWidget(QWidget):
         self.comparison_table.setStyleSheet("""
             QTableWidget {
                 gridline-color: #ddd;
-                font-size: 12px;
+                font-size: 13px;
             }
             QTableWidget::item {
-                padding: 8px;
+                padding: 10px;
             }
             QHeaderView::section {
                 background-color: #9C27B0;
@@ -564,10 +658,103 @@ class ResultsWidget(QWidget):
         self.recommendation = QLabel()
         self.recommendation.setAlignment(Qt.AlignCenter)
         self.recommendation.setWordWrap(True)
-        self.recommendation.setStyleSheet("padding: 10px; background-color: #e8f5e9; border-radius: 5px; margin-top: 10px;")
+        self.recommendation.setStyleSheet("""
+            padding: 14px;
+            background-color: #e8f5e9;
+            border-radius: 5px;
+            margin-top: 10px;
+            color: #1b5e20;
+            font-size: 14px;
+            font-weight: bold;
+        """)
         layout.addWidget(self.recommendation)
 
         self.comparison_tab.setLayout(layout)
+
+    def setup_check_tab(self):
+        layout = QVBoxLayout()
+
+        residual_title = QLabel("Невязка по уравнениям")
+        residual_title.setAlignment(Qt.AlignCenter)
+        residual_title.setStyleSheet("font-size: 14px; font-weight: bold; color: #1565c0; padding: 6px;")
+        layout.addWidget(residual_title)
+
+        self.residual_table = QTableWidget()
+        self.residual_table.setColumnCount(2)
+        self.residual_table.setHorizontalHeaderLabels(["Уравнение", "Невязка"])
+        self.residual_table.setAlternatingRowColors(True)
+        self.residual_table.setStyleSheet("""
+            QTableWidget {
+                gridline-color: #ddd;
+                font-size: 13px;
+            }
+            QTableWidget::item {
+                padding: 10px;
+            }
+            QHeaderView::section {
+                background-color: #2196F3;
+                color: white;
+                padding: 8px;
+                font-size: 12px;
+                font-weight: bold;
+            }
+        """)
+        layout.addWidget(self.residual_table)
+
+        self.final_residual_label = QLabel()
+        self.final_residual_label.setAlignment(Qt.AlignCenter)
+        self.final_residual_label.setStyleSheet("""
+            padding: 12px;
+            background-color: #e3f2fd;
+            border-radius: 5px;
+            color: #0d47a1;
+            font-size: 14px;
+            font-weight: bold;
+            margin-top: 10px;
+        """)
+        layout.addWidget(self.final_residual_label)
+
+        diff_title = QLabel("Разность решений Якоби и Зейделя")
+        diff_title.setAlignment(Qt.AlignCenter)
+        diff_title.setStyleSheet("font-size: 14px; font-weight: bold; color: #6a1b9a; padding: 6px;")
+        layout.addWidget(diff_title)
+
+        self.methods_diff_table = QTableWidget()
+        self.methods_diff_table.setColumnCount(2)
+        self.methods_diff_table.setHorizontalHeaderLabels(["Компонента", "Разность"])
+        self.methods_diff_table.setAlternatingRowColors(True)
+        self.methods_diff_table.setStyleSheet("""
+            QTableWidget {
+                gridline-color: #ddd;
+                font-size: 13px;
+            }
+            QTableWidget::item {
+                padding: 10px;
+            }
+            QHeaderView::section {
+                background-color: #7B1FA2;
+                color: white;
+                padding: 8px;
+                font-size: 12px;
+                font-weight: bold;
+            }
+        """)
+        layout.addWidget(self.methods_diff_table)
+
+        self.methods_diff_label = QLabel()
+        self.methods_diff_label.setAlignment(Qt.AlignCenter)
+        self.methods_diff_label.setStyleSheet("""
+            padding: 12px;
+            background-color: #f3e5f5;
+            border-radius: 5px;
+            color: #6a1b9a;
+            font-size: 14px;
+            font-weight: bold;
+            margin-top: 10px;
+        """)
+        layout.addWidget(self.methods_diff_label)
+
+        self.check_tab.setLayout(layout)
 
     def display_results(self, method_name, x, iterations, errors, residual_norms, residual, converged):
         self.method_label.setText(f"Результаты: {method_name}")
@@ -592,15 +779,15 @@ class ResultsWidget(QWidget):
 
         self.iter_info.setText(f"Количество итераций: {iterations}")
 
-        residual_norm = np.linalg.norm(residual, np.inf)
-        self.residual_info.setText(f"Максимальная невязка: {residual_norm:.2e}")
+        residual_norm = IterativeSolvers.inf_norm_vector(residual)
+        self.residual_info.setText(f"Финальная норма невязки: {residual_norm:.2e}")
 
         if converged:
             self.convergence_status.setText("Сходимость достигнута")
-            self.convergence_status.setStyleSheet("color: #4CAF50; font-weight: bold; padding: 5px;")
+            self.convergence_status.setStyleSheet("color: #4CAF50; font-weight: bold; font-size: 14px; padding: 5px;")
         else:
             self.convergence_status.setText("Не удалось достичь сходимости за максимальное число итераций")
-            self.convergence_status.setStyleSheet("color: #f44336; font-weight: bold; padding: 5px;")
+            self.convergence_status.setStyleSheet("color: #f44336; font-weight: bold; font-size: 14px; padding: 5px;")
 
         rows = min(len(errors), 50)
         self.iter_table.setRowCount(rows)
@@ -611,16 +798,47 @@ class ResultsWidget(QWidget):
 
         self.iter_table.resizeColumnsToContents()
 
+        self.residual_table.setRowCount(len(residual))
+        for i, res in enumerate(residual):
+            eq_item = QTableWidgetItem(f"Уравнение {i+1}")
+            res_item = QTableWidgetItem(f"{res:.2e}")
+
+            if abs(res) < 1e-10:
+                res_item.setForeground(QBrush(QColor(76, 175, 80)))
+                res_item.setText("≈ 0")
+            elif abs(res) < 1e-6:
+                res_item.setForeground(QBrush(QColor(255, 152, 0)))
+            else:
+                res_item.setForeground(QBrush(QColor(244, 67, 54)))
+
+            self.residual_table.setItem(i, 0, eq_item)
+            self.residual_table.setItem(i, 1, res_item)
+
+        self.residual_table.resizeColumnsToContents()
+        self.final_residual_label.setText(f"Максимальная финальная невязка: {residual_norm:.2e}")
+
     def display_comparison(self, simple_data, seidel_data):
         self.comparison_table.setRowCount(2)
 
-        self.comparison_table.setItem(0, 0, QTableWidgetItem("Метод простых итераций"))
-        self.comparison_table.setItem(0, 1, QTableWidgetItem(str(simple_data['iterations'])))
+        item = QTableWidgetItem("Метод простых итераций")
+        item.setFont(QFont("Arial", 11, QFont.Bold))
+        self.comparison_table.setItem(0, 0, item)
+
+        item = QTableWidgetItem(str(simple_data['iterations']))
+        item.setFont(QFont("Arial", 11, QFont.Bold))
+        self.comparison_table.setItem(0, 1, item)
+
         for i in range(4):
             self.comparison_table.setItem(0, i + 2, QTableWidgetItem(f"{simple_data['x'][i]:.8f}"))
 
-        self.comparison_table.setItem(1, 0, QTableWidgetItem("Метод Зейделя"))
-        self.comparison_table.setItem(1, 1, QTableWidgetItem(str(seidel_data['iterations'])))
+        item = QTableWidgetItem("Метод Зейделя")
+        item.setFont(QFont("Arial", 11, QFont.Bold))
+        self.comparison_table.setItem(1, 0, item)
+
+        item = QTableWidgetItem(str(seidel_data['iterations']))
+        item.setFont(QFont("Arial", 11, QFont.Bold))
+        self.comparison_table.setItem(1, 1, item)
+
         for i in range(4):
             self.comparison_table.setItem(1, i + 2, QTableWidgetItem(f"{seidel_data['x'][i]:.8f}"))
 
@@ -638,13 +856,36 @@ class ResultsWidget(QWidget):
         if simple_data['converged'] and seidel_data['converged']:
             recommendation += "\nОба метода достигли сходимости."
         elif not simple_data['converged'] and not seidel_data['converged']:
-            recommendation += "\nВнимание: ни один метод не достиг сходимости. Возможно, матрица не обладает свойством диагонального преобладания."
+            recommendation += "\nВнимание: ни один метод не достиг сходимости."
         elif not simple_data['converged']:
             recommendation += "\nМетод простых итераций не достиг сходимости. Рекомендуется использовать метод Зейделя."
         else:
             recommendation += "\nМетод Зейделя не достиг сходимости. Рекомендуется использовать метод простых итераций."
 
         self.recommendation.setText(recommendation)
+
+        diff = IterativeSolvers.subtract_vectors(simple_data['x'], seidel_data['x'])
+        diff_norm = IterativeSolvers.inf_norm_vector(diff)
+
+        self.methods_diff_table.setRowCount(len(diff))
+        for i in range(len(diff)):
+            comp_item = QTableWidgetItem(f"Δx{i+1}")
+            comp_item.setFont(QFont("Arial", 11, QFont.Bold))
+            diff_item = QTableWidgetItem(f"{diff[i]:.2e}")
+
+            if abs(diff[i]) < 1e-10:
+                diff_item.setForeground(QBrush(QColor(76, 175, 80)))
+                diff_item.setText("≈ 0")
+            elif abs(diff[i]) < 1e-6:
+                diff_item.setForeground(QBrush(QColor(255, 152, 0)))
+            else:
+                diff_item.setForeground(QBrush(QColor(244, 67, 54)))
+
+            self.methods_diff_table.setItem(i, 0, comp_item)
+            self.methods_diff_table.setItem(i, 1, diff_item)
+
+        self.methods_diff_table.resizeColumnsToContents()
+        self.methods_diff_label.setText(f"Максимальное отклонение между методами: {diff_norm:.2e}")
 
 
 class MainWindow(QMainWindow):
@@ -656,7 +897,7 @@ class MainWindow(QMainWindow):
 
     def init_ui(self):
         self.setWindowTitle("Решение СЛАУ итерационными методами")
-        self.setGeometry(100, 100, 1100, 800)
+        self.setGeometry(100, 100, 1150, 850)
 
         self.setStyleSheet("""
             QMainWindow {
@@ -813,11 +1054,15 @@ class MainWindow(QMainWindow):
         self.results_widget.solution_table.setRowCount(0)
         self.results_widget.iter_table.setRowCount(0)
         self.results_widget.comparison_table.setRowCount(0)
+        self.results_widget.residual_table.setRowCount(0)
+        self.results_widget.methods_diff_table.setRowCount(0)
         self.results_widget.method_label.setText("")
         self.results_widget.iter_info.setText("")
         self.results_widget.residual_info.setText("")
         self.results_widget.convergence_status.setText("")
         self.results_widget.recommendation.setText("")
+        self.results_widget.final_residual_label.setText("")
+        self.results_widget.methods_diff_label.setText("")
         self.statusBar().showMessage("Результаты очищены")
 
 

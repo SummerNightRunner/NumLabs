@@ -1046,6 +1046,11 @@ class MainWindow(QMainWindow):
         self.results_widget = ResultsWidget()
         layout.addWidget(self.results_widget)
 
+        self.numpy_check_button = QPushButton("Проверка через NumPy")
+        self.numpy_check_button.clicked.connect(self.show_numpy_check)
+        self.numpy_check_button.setEnabled(False)
+        layout.addWidget(self.numpy_check_button)
+
         clear_button = QPushButton("Очистить все")
         clear_button.setStyleSheet("background-color: #f44336;")
         clear_button.clicked.connect(self.clear_results)
@@ -1077,16 +1082,56 @@ class MainWindow(QMainWindow):
             )
 
             verification_error = RotationMethod.check_eigenvectors(self.A, eigenvalues, eigenvectors)
+            self.last_eigenvalues = eigenvalues
+            self.last_eigenvectors = eigenvectors
+            self.last_tolerance = tolerance
 
             self.results_widget.display_results(
                 eigenvalues, eigenvectors, iterations, errors, tolerance, verification_error
             )
+            self.numpy_check_button.setEnabled(True)
 
             self.statusBar().showMessage(f"Вычисление завершено за {iterations} итераций")
 
         except Exception as e:
             QMessageBox.critical(self, "Ошибка", f"Непредвиденная ошибка:\n{str(e)}")
             self.statusBar().showMessage("Ошибка при вычислении")
+
+    def show_numpy_check(self):
+        if not hasattr(self, 'A') or not hasattr(self, 'last_eigenvalues'):
+            QMessageBox.warning(self, "Проверка NumPy", "Сначала выполните расчёт.")
+            return
+
+        np_values, np_vectors = np.linalg.eigh(self.A)
+        np_idx = np.argsort(-np_values)
+        np_values = np_values[np_idx]
+        np_vectors = np_vectors[:, np_idx]
+
+        ours = np.array(self.last_eigenvalues, dtype=float)
+        value_diff = np.max(np.abs(ours - np_values))
+        residual_ours = RotationMethod.check_eigenvectors(self.A, ours, self.last_eigenvectors)
+        residual_numpy = RotationMethod.check_eigenvectors(self.A, np_values, np_vectors)
+
+        alignments = []
+        for i in range(len(ours)):
+            dot = abs(float(np.dot(self.last_eigenvectors[:, i], np_vectors[:, i])))
+            alignments.append(dot)
+
+        lines = [
+            "Сравнение метода Якоби с np.linalg.eigh",
+            "",
+            "Наши собственные значения:",
+            np.array2string(ours, precision=10),
+            "",
+            "NumPy собственные значения:",
+            np.array2string(np_values, precision=10),
+            "",
+            f"Максимальная разница значений: {value_diff:.2e}",
+            f"Невязка нашего метода ||Av - λv||: {residual_ours:.2e}",
+            f"Невязка NumPy ||Av - λv||: {residual_numpy:.2e}",
+            f"Совпадение направлений векторов |vᵀv_np|: {', '.join(f'{a:.6f}' for a in alignments)}",
+        ]
+        QMessageBox.information(self, "Проверка через NumPy", "\n".join(lines))
 
     def clear_results(self):
         self.results_widget.eigenvalues_table.setRowCount(0)
@@ -1097,6 +1142,7 @@ class MainWindow(QMainWindow):
         self.results_widget.analysis_text.clear()
         self.results_widget.figure.clear()
         self.results_widget.canvas.draw()
+        self.numpy_check_button.setEnabled(False)
         self.statusBar().showMessage("Результаты очищены")
 
 
