@@ -133,7 +133,7 @@ class ConvergenceGraph(FigureCanvas):
     """График сходимости QR-алгоритма"""
     
     def __init__(self, parent=None):
-        self.figure = Figure(figsize=(8, 5), dpi=100)
+        self.figure = Figure(figsize=(10, 6), dpi=100)
         self.figure.set_facecolor('#f5f5f5')
         super().__init__(self.figure)
         self.setParent(parent)
@@ -144,7 +144,7 @@ class ConvergenceGraph(FigureCanvas):
         self.axes.set_ylabel('Норма поддиагональных элементов')
         self.axes.set_title('График сходимости QR-алгоритма')
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.setMinimumHeight(300)
+        self.setMinimumHeight(480)
         
     def plot_convergence(self, history, tolerance):
         """Построение графика сходимости"""
@@ -162,9 +162,9 @@ class ConvergenceGraph(FigureCanvas):
                          linewidth=1.5, label=f'Заданная точность ({tolerance:.1e})')
         
         self.axes.grid(True, linestyle='--', alpha=0.7)
-        self.axes.set_xlabel('Номер итерации', fontsize=11)
-        self.axes.set_ylabel('Норма поддиагональных элементов', fontsize=11)
-        self.axes.set_title('График сходимости QR-алгоритма', fontsize=13, fontweight='bold')
+        self.axes.set_xlabel('Номер итерации', fontsize=12)
+        self.axes.set_ylabel('Норма поддиагональных элементов', fontsize=12)
+        self.axes.set_title('График сходимости QR-алгоритма', fontsize=14, fontweight='bold')
         self.axes.legend(loc='upper right', fontsize=10)
         
         if len(iterations) > 1:
@@ -555,6 +555,7 @@ class ResultsWidget(QWidget):
         
     def init_ui(self):
         layout = QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
         
         self.tab_widget = QTabWidget()
         self.tab_widget.setStyleSheet("""
@@ -590,7 +591,12 @@ class ResultsWidget(QWidget):
         self.history_tab = QWidget()
         self.setup_history_tab()
         self.tab_widget.addTab(self.create_scrollable_tab(self.history_tab), "История итераций")
+
+        self.analysis_tab = QWidget()
+        self.setup_analysis_tab()
+        self.tab_widget.addTab(self.create_scrollable_tab(self.analysis_tab), "Анализ точности")
         
+        self.tab_widget.setMinimumHeight(760)
         layout.addWidget(self.tab_widget)
         self.setLayout(layout)
     
@@ -600,6 +606,7 @@ class ResultsWidget(QWidget):
         scroll.setWidget(content_widget)
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.NoFrame)
+        scroll.setMinimumHeight(720)
         return scroll
     
     def setup_results_tab(self):
@@ -626,15 +633,17 @@ class ResultsWidget(QWidget):
         ])
         self.eigenvalues_table.setAlternatingRowColors(True)
         self.eigenvalues_table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.eigenvalues_table.setMinimumHeight(150)
-        self.eigenvalues_table.horizontalHeader().setStretchLastSection(True)
+        self.eigenvalues_table.setMinimumHeight(230)
+        self.eigenvalues_table.verticalHeader().setVisible(False)
+        self.eigenvalues_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.eigenvalues_table.verticalHeader().setDefaultSectionSize(42)
         self.eigenvalues_table.setStyleSheet("""
             QTableWidget {
                 gridline-color: #ddd;
-                font-size: 13px;
+                font-size: 14px;
             }
             QTableWidget::item {
-                padding: 10px;
+                padding: 12px;
             }
             QHeaderView::section {
                 background-color: #2196F3;
@@ -644,7 +653,7 @@ class ResultsWidget(QWidget):
                 font-weight: bold;
             }
         """)
-        layout.addWidget(self.eigenvalues_table)
+        layout.addWidget(self.eigenvalues_table, 1)
         
         self.info_label = QLabel()
         self.info_label.setAlignment(Qt.AlignCenter)
@@ -658,7 +667,6 @@ class ResultsWidget(QWidget):
         """)
         layout.addWidget(self.info_label)
         
-        layout.addStretch()
         self.results_tab.setLayout(layout)
     
     def setup_qr_tab(self):
@@ -675,15 +683,17 @@ class ResultsWidget(QWidget):
         self.q_table.setHorizontalHeaderLabels(["Столбец 1", "Столбец 2", "Столбец 3"])
         self.q_table.setAlternatingRowColors(True)
         self.q_table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.q_table.setMinimumHeight(150)
-        self.q_table.horizontalHeader().setStretchLastSection(True)
+        self.q_table.setMinimumHeight(220)
+        self.q_table.verticalHeader().setVisible(False)
+        self.q_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.q_table.verticalHeader().setDefaultSectionSize(44)
         self.q_table.setStyleSheet("""
             QTableWidget {
                 gridline-color: #ddd;
-                font-size: 12px;
+                font-size: 14px;
             }
             QTableWidget::item {
-                padding: 8px;
+                padding: 12px;
             }
             QHeaderView::section {
                 background-color: #4CAF50;
@@ -693,7 +703,7 @@ class ResultsWidget(QWidget):
                 font-weight: bold;
             }
         """)
-        layout.addWidget(self.q_table)
+        layout.addWidget(self.q_table, 1)
         
         r_label = QLabel("Верхняя треугольная матрица R:")
         r_label.setFont(QFont("Arial", 13, QFont.Bold))
@@ -704,15 +714,17 @@ class ResultsWidget(QWidget):
         self.r_table.setHorizontalHeaderLabels(["Столбец 1", "Столбец 2", "Столбец 3"])
         self.r_table.setAlternatingRowColors(True)
         self.r_table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.r_table.setMinimumHeight(150)
-        self.r_table.horizontalHeader().setStretchLastSection(True)
+        self.r_table.setMinimumHeight(220)
+        self.r_table.verticalHeader().setVisible(False)
+        self.r_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.r_table.verticalHeader().setDefaultSectionSize(44)
         self.r_table.setStyleSheet("""
             QTableWidget {
                 gridline-color: #ddd;
-                font-size: 12px;
+                font-size: 14px;
             }
             QTableWidget::item {
-                padding: 8px;
+                padding: 12px;
             }
             QHeaderView::section {
                 background-color: #FF9800;
@@ -722,7 +734,7 @@ class ResultsWidget(QWidget):
                 font-weight: bold;
             }
         """)
-        layout.addWidget(self.r_table)
+        layout.addWidget(self.r_table, 1)
         
         self.verification_label = QLabel()
         self.verification_label.setAlignment(Qt.AlignCenter)
@@ -735,8 +747,26 @@ class ResultsWidget(QWidget):
             color: #0d47a1;
         """)
         layout.addWidget(self.verification_label)
+
+        check_label = QLabel("Наглядная проверка матричных равенств:")
+        check_label.setFont(QFont("Arial", 13, QFont.Bold))
+        layout.addWidget(check_label)
+
+        self.qr_visual_text = QTextEdit()
+        self.qr_visual_text.setReadOnly(True)
+        self.qr_visual_text.setMinimumHeight(360)
+        self.qr_visual_text.setStyleSheet("""
+            QTextEdit {
+                background-color: white;
+                color: black;
+                border: 2px solid #ddd;
+                border-radius: 8px;
+                padding: 12px;
+                font-size: 12px;
+            }
+        """)
+        layout.addWidget(self.qr_visual_text, 1)
         
-        layout.addStretch()
         self.qr_tab.setLayout(layout)
     
     def setup_history_tab(self):
@@ -751,15 +781,17 @@ class ResultsWidget(QWidget):
         ])
         self.history_table.setAlternatingRowColors(True)
         self.history_table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.history_table.setMinimumHeight(200)
-        self.history_table.horizontalHeader().setStretchLastSection(True)
+        self.history_table.setMinimumHeight(280)
+        self.history_table.verticalHeader().setVisible(False)
+        self.history_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.history_table.verticalHeader().setDefaultSectionSize(38)
         self.history_table.setStyleSheet("""
             QTableWidget {
                 gridline-color: #ddd;
-                font-size: 12px;
+                font-size: 14px;
             }
             QTableWidget::item {
-                padding: 8px;
+                padding: 10px;
             }
             QHeaderView::section {
                 background-color: #9C27B0;
@@ -769,7 +801,7 @@ class ResultsWidget(QWidget):
                 font-weight: bold;
             }
         """)
-        layout.addWidget(self.history_table, 2)  # Растягивается больше
+        layout.addWidget(self.history_table, 2)
         
         graph_label = QLabel("График сходимости:")
         graph_label.setFont(QFont("Arial", 13, QFont.Bold))
@@ -777,10 +809,32 @@ class ResultsWidget(QWidget):
         
         self.convergence_graph = ConvergenceGraph(self)
         self.convergence_graph.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        layout.addWidget(self.convergence_graph, 3)  # Растягивается ещё больше
-        
-        layout.addStretch()
+        layout.addWidget(self.convergence_graph, 4)
         self.history_tab.setLayout(layout)
+
+    def setup_analysis_tab(self):
+        layout = QVBoxLayout()
+        title = QLabel("Анализ точности QR-алгоритма")
+        title.setFont(QFont("Arial", 14, QFont.Bold))
+        title.setAlignment(Qt.AlignCenter)
+        title.setStyleSheet("color: #333; margin: 10px;")
+        layout.addWidget(title)
+
+        self.analysis_text = QTextEdit()
+        self.analysis_text.setReadOnly(True)
+        self.analysis_text.setMinimumHeight(560)
+        self.analysis_text.setStyleSheet("""
+            QTextEdit {
+                font-size: 12px;
+                background-color: white;
+                color: black;
+                border: 2px solid #ccc;
+                border-radius: 10px;
+                padding: 15px;
+            }
+        """)
+        layout.addWidget(self.analysis_text)
+        self.analysis_tab.setLayout(layout)
     
     def display_results(self, A, eigenvalues, iterations, history, Ak_final, converged, tolerance):
         """Отображение результатов вычислений"""
@@ -879,6 +933,7 @@ class ResultsWidget(QWidget):
             f"Проверка QR = A:\n"
             f"Максимальная погрешность: {error_qr:.2e}"
         )
+        self.qr_visual_text.setHtml(self.build_qr_visual_html(A, Q, R, QR_product, Ak_final, eigenvalues))
         
         self.history_table.setRowCount(len(history))
         for i, h in enumerate(history):
@@ -892,6 +947,103 @@ class ResultsWidget(QWidget):
         self.history_table.resizeColumnsToContents()
         
         self.convergence_graph.plot_convergence(history, tolerance)
+        self.analysis_text.setHtml(self.build_analysis_html(A, eigenvalues, history, converged, tolerance, errors, error_qr))
+
+    def build_qr_visual_html(self, A, Q, R, QR_product, Ak_final, eigenvalues):
+        qtq = Q.T @ Q
+        rq = R @ Q
+        identity_error = np.linalg.norm(qtq - np.eye(Q.shape[0]), np.inf)
+        qr_error = np.linalg.norm(A - QR_product, np.inf)
+
+        def fmt_matrix(M):
+            rows = []
+            for row in M:
+                rows.append("[" + "  ".join(f"{complex(x).real: .6f}" for x in row) + "]")
+            return "<br>".join(rows)
+
+        return f"""
+        <html><body style="font-family: Arial, sans-serif; background:#f0f2f5; padding:14px;">
+            <div style="background:white; border-radius:12px; padding:16px; border:1px solid #ddd; margin-bottom:14px;">
+                <h2 style="margin-top:0;">Проверка QR-разложения</h2>
+                <p>После разложения должно выполняться <b>A = Q·R</b>.</p>
+                <table border="1" cellspacing="0" cellpadding="8" style="border-collapse:collapse; width:100%;">
+                    <tr style="background:#2196F3; color:white;"><th>A</th><th>Q·R</th><th>A - Q·R</th></tr>
+                    <tr>
+                        <td><code>{fmt_matrix(A)}</code></td>
+                        <td><code>{fmt_matrix(QR_product)}</code></td>
+                        <td><code>{fmt_matrix(A - QR_product)}</code></td>
+                    </tr>
+                </table>
+                <p><b>||A - Q·R||∞ = {qr_error:.2e}</b></p>
+            </div>
+            <div style="background:white; border-radius:12px; padding:16px; border:1px solid #ddd; margin-bottom:14px;">
+                <h2 style="margin-top:0;">Проверка ортогональности Q</h2>
+                <p>Для ортогональной матрицы должно выполняться <b>QᵀQ = I</b>.</p>
+                <table border="1" cellspacing="0" cellpadding="8" style="border-collapse:collapse; width:100%;">
+                    <tr style="background:#4CAF50; color:white;"><th>QᵀQ</th><th>QᵀQ - I</th></tr>
+                    <tr>
+                        <td><code>{fmt_matrix(qtq)}</code></td>
+                        <td><code>{fmt_matrix(qtq - np.eye(Q.shape[0]))}</code></td>
+                    </tr>
+                </table>
+                <p><b>||QᵀQ - I||∞ = {identity_error:.2e}</b></p>
+            </div>
+            <div style="background:white; border-radius:12px; padding:16px; border:1px solid #ddd;">
+                <h2 style="margin-top:0;">Шаг QR-алгоритма</h2>
+                <p>QR-алгоритм меняет порядок множителей: <b>A₁ = R·Q</b>. На следующих шагах диагональ стремится к собственным значениям.</p>
+                <p><b>R·Q:</b><br><code>{fmt_matrix(rq)}</code></p>
+                <p><b>Финальная матрица Aₖ:</b><br><code>{fmt_matrix(Ak_final)}</code></p>
+                <p><b>Диагональ Aₖ:</b> {', '.join(f'{ev:.8g}' for ev in np.diag(Ak_final))}</p>
+            </div>
+        </body></html>
+        """
+
+    def build_analysis_html(self, A, eigenvalues, history, converged, tolerance, errors, error_qr):
+        final_off = history[-1]['off_diag_norm'] if history else 0.0
+        initial_off = history[0]['off_diag_norm'] if history else 0.0
+        ratio = final_off / initial_off if initial_off else 0.0
+        trace_diff = abs(np.trace(A) - sum(eigenvalues))
+        det_diff = abs(np.linalg.det(A) - np.prod(eigenvalues))
+        max_det_residual = max(errors) if errors else 0.0
+        status_color = "#4CAF50" if converged else "#f44336"
+        status_text = "ДОСТИГНУТА" if converged else "НЕ ДОСТИГНУТА"
+
+        rows = []
+        for h in history[:30]:
+            rows.append(f"""
+                <tr>
+                    <td>{h['iteration']}</td>
+                    <td>{h['off_diag_norm']:.2e}</td>
+                    <td>{h['off_diag_norm'] / initial_off:.2e}</td>
+                </tr>
+            """)
+
+        return f"""
+        <html><body style="font-family: Arial, sans-serif; background:#f0f2f5; padding:18px;">
+            <div style="background:white; border-radius:12px; padding:18px; border:1px solid #ddd; margin-bottom:16px;">
+                <h2 style="margin-top:0;">Итог сходимости</h2>
+                <p style="font-size:18px; color:{status_color};"><b>Точность {status_text}</b></p>
+                <p>Заданная точность: <b>{tolerance:.2e}</b></p>
+                <p>Начальная внедиагональная норма: <b>{initial_off:.2e}</b></p>
+                <p>Финальная внедиагональная норма: <b>{final_off:.2e}</b></p>
+                <p>Уменьшение относительно начала: <b>{ratio:.2e}</b></p>
+            </div>
+            <div style="background:white; border-radius:12px; padding:18px; border:1px solid #ddd; margin-bottom:16px;">
+                <h2 style="margin-top:0;">Проверки инвариантов</h2>
+                <p>След матрицы должен совпадать с суммой собственных значений: разница <b>{trace_diff:.2e}</b>.</p>
+                <p>Определитель должен совпадать с произведением собственных значений: разница <b>{det_diff:.2e}</b>.</p>
+                <p>Максимальная невязка характеристического уравнения |det(A-λI)|: <b>{max_det_residual:.2e}</b>.</p>
+                <p>Погрешность QR-разложения ||A-Q·R||∞: <b>{error_qr:.2e}</b>.</p>
+            </div>
+            <div style="background:white; border-radius:12px; padding:18px; border:1px solid #ddd;">
+                <h2 style="margin-top:0;">Таблица уменьшения погрешности</h2>
+                <table border="1" cellspacing="0" cellpadding="8" style="border-collapse:collapse; width:100%;">
+                    <tr style="background:#9C27B0; color:white;"><th>Итерация</th><th>Погрешность</th><th>Доля от начальной</th></tr>
+                    {''.join(rows)}
+                </table>
+            </div>
+        </body></html>
+        """
 
 
 class MainWindow(QMainWindow):
@@ -904,7 +1056,7 @@ class MainWindow(QMainWindow):
         
     def init_ui(self):
         self.setWindowTitle("QR-алгоритм для нахождения собственных значений")
-        self.setGeometry(100, 100, 1200, 900)
+        self.setGeometry(80, 60, 1400, 980)
         
         self.setStyleSheet("""
             QMainWindow {
@@ -932,6 +1084,7 @@ class MainWindow(QMainWindow):
         central_layout = QVBoxLayout(central_widget)
         central_layout.setSpacing(15)
         central_layout.setContentsMargins(10, 10, 10, 10)
+        central_widget.setMinimumWidth(1050)
         
         title = QLabel("QR-алгоритм для нахождения собственных значений матриц 3x3")
         title.setFont(QFont("Arial", 16, QFont.Bold))
@@ -985,6 +1138,7 @@ class MainWindow(QMainWindow):
         central_layout.addLayout(button_layout)
         
         self.results_widget = ResultsWidget()
+        self.results_widget.setMinimumHeight(780)
         central_layout.addWidget(self.results_widget, 1)
         
         # Создаем QScrollArea для всего содержимого
@@ -1094,6 +1248,8 @@ class MainWindow(QMainWindow):
         self.results_widget.convergence_label.setText("")
         self.results_widget.info_label.setText("")
         self.results_widget.verification_label.setText("")
+        self.results_widget.qr_visual_text.clear()
+        self.results_widget.analysis_text.clear()
         self.results_widget.convergence_graph.axes.clear()
         self.results_widget.convergence_graph.draw()
         self.numpy_check_button.setEnabled(False)

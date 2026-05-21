@@ -10,7 +10,6 @@ from matplotlib.figure import Figure
 
 
 class EquationSolver:
-    """Класс для работы с уравнением и методами решения"""
     
     def __init__(self):
         self.x_symbol = sp.Symbol('x')
@@ -22,7 +21,6 @@ class EquationSolver:
         self.phi_options = []  # Список вариантов phi(x)
         
     def set_equation(self, f_str):
-        """Установка уравнения f(x)=0"""
         try:
             self.f_expr = sp.sympify(f_str, evaluate=False)
             self.f_lambdified = sp.lambdify(self.x_symbol, self.f_expr, modules=['numpy', 'math'])
@@ -36,7 +34,6 @@ class EquationSolver:
             return False, str(e)
     
     def generate_phi_options(self):
-        """Генерация возможных выражений phi(x) из f(x)=0 (улучшенная версия)"""
         self.phi_options = []
         if self.f_expr is None:
             return
@@ -141,7 +138,6 @@ class EquationSolver:
         self.phi_options = unique_options
     
     def set_phi(self, phi_expr):
-        """Установка выбранного выражения phi(x)"""
         try:
             self.phi_expr = phi_expr
             self.phi_lambdified = sp.lambdify(self.x_symbol, self.phi_expr, modules=['numpy', 'math'])
@@ -239,10 +235,9 @@ class EquationSolver:
 
 
 class FunctionGraph(FigureCanvas):
-    """Виджет для отображения графика функции с итерациями"""
     
     def __init__(self, parent=None):
-        self.figure = Figure(figsize=(8, 5), dpi=100)
+        self.figure = Figure(figsize=(10, 6), dpi=100)
         self.figure.set_facecolor('#f5f5f5')
         super().__init__(self.figure)
         self.setParent(parent)
@@ -253,7 +248,7 @@ class FunctionGraph(FigureCanvas):
         self.axes.set_ylabel('f(x)')
         self.axes.set_title('График функции f(x)')
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.setMinimumHeight(300)
+        self.setMinimumHeight(520)
         
         self.mpl_connect('button_press_event', self.on_click)
         self.click_callback = None
@@ -301,10 +296,9 @@ class FunctionGraph(FigureCanvas):
 
 
 class ConvergenceGraph(FigureCanvas):
-    """График сходимости (погрешность от итерации)"""
     
     def __init__(self, parent=None):
-        self.figure = Figure(figsize=(8, 4), dpi=100)
+        self.figure = Figure(figsize=(10, 5), dpi=100)
         self.figure.set_facecolor('#f5f5f5')
         super().__init__(self.figure)
         self.setParent(parent)
@@ -315,7 +309,7 @@ class ConvergenceGraph(FigureCanvas):
         self.axes.set_ylabel('Погрешность |x_{k+1} - x_k|')
         self.axes.set_title('График сходимости')
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.setMinimumHeight(250)
+        self.setMinimumHeight(420)
         
     def plot_convergence(self, history, tolerance):
         self.axes.clear()
@@ -336,9 +330,9 @@ class ConvergenceGraph(FigureCanvas):
                          linewidth=1.5, label=f'Заданная точность ({tolerance:.1e})')
         
         self.axes.grid(True, linestyle='--', alpha=0.7)
-        self.axes.set_xlabel('Номер итерации', fontsize=10)
-        self.axes.set_ylabel('Погрешность', fontsize=10)
-        self.axes.set_title('Зависимость погрешности от номера итерации', fontsize=12, fontweight='bold')
+        self.axes.set_xlabel('Номер итерации', fontsize=12)
+        self.axes.set_ylabel('Погрешность', fontsize=12)
+        self.axes.set_title('Зависимость погрешности от номера итерации', fontsize=14, fontweight='bold')
         self.axes.legend(loc='upper right', fontsize=9)
         
         if len(iterations) > 1:
@@ -357,20 +351,20 @@ class MainWindow(QMainWindow):
         
     def init_ui(self):
         self.setWindowTitle("Решение нелинейных уравнений")
-        self.setGeometry(100, 100, 1300, 900)
+        self.setGeometry(80, 60, 1400, 980)
         
         self.setStyleSheet("""
             QMainWindow { background-color: #f5f5f5; }
-            QPushButton { background-color: #2196F3; color: white; border: none; padding: 10px 20px; border-radius: 5px; font-size: 13px; font-weight: bold; }
+            QPushButton { background-color: #2196F3; color: white; border: none; padding: 11px 20px; border-radius: 5px; font-size: 13px; font-weight: bold; }
             QPushButton:hover { background-color: #1976D2; }
             QGroupBox { font-weight: bold; border: 2px solid #cccccc; border-radius: 8px; margin-top: 20px; padding-top: 15px; background-color: white; }
             QGroupBox::title { subcontrol-origin: margin; left: 20px; padding: 0 10px 0 10px; color: #2196F3; background-color: white; }
             QLabel { font-size: 12px; color: #333333; }
             QLineEdit { padding: 8px; border: 2px solid #cccccc; border-radius: 5px; font-size: 12px; background-color: white; color: #000000; selection-background-color: #2196F3; }
             QLineEdit:focus { border: 2px solid #2196F3; }
-            QTableWidget { gridline-color: #dddddd; font-size: 12px; background-color: white; alternate-background-color: #f9f9f9; }
-            QTableWidget::item { color: #000000; }
-            QHeaderView::section { background-color: #2196F3; color: white; padding: 8px; font-weight: bold; }
+            QTableWidget { gridline-color: #dddddd; font-size: 14px; background-color: white; alternate-background-color: #f9f9f9; }
+            QTableWidget::item { color: #000000; padding: 8px; }
+            QHeaderView::section { background-color: #2196F3; color: white; padding: 10px; font-weight: bold; font-size: 13px; }
             QComboBox { padding: 6px; border: 2px solid #cccccc; border-radius: 5px; background-color: white; color: #000000; }
             QComboBox:focus { border: 2px solid #2196F3; }
             QTabWidget::pane { border: 1px solid #cccccc; background: white; border-radius: 5px; }
@@ -382,6 +376,7 @@ class MainWindow(QMainWindow):
         main_layout = QVBoxLayout(central_widget)
         main_layout.setSpacing(15)
         main_layout.setContentsMargins(15, 15, 15, 15)
+        central_widget.setMinimumWidth(1050)
         
         title = QLabel("Решение нелинейных уравнений методами простой итерации и Ньютона")
         title.setFont(QFont("Arial", 16, QFont.Bold))
@@ -468,6 +463,7 @@ class MainWindow(QMainWindow):
         main_layout.addWidget(input_group)
         
         self.tab_widget = QTabWidget()
+        self.tab_widget.setMinimumHeight(720)
         
         self.graph_tab = QWidget()
         graph_layout = QVBoxLayout(self.graph_tab)
@@ -488,7 +484,7 @@ class MainWindow(QMainWindow):
         
         self.function_graph = FunctionGraph(self)
         self.function_graph.click_callback = self.on_graph_click
-        graph_layout.addWidget(self.function_graph)
+        graph_layout.addWidget(self.function_graph, 1)
         
         info_label = QLabel("Кликните по графику, чтобы установить начальное приближение x0")
         info_label.setAlignment(Qt.AlignCenter)
@@ -504,13 +500,18 @@ class MainWindow(QMainWindow):
         results_layout.addWidget(self.result_label)
         self.solution_info = QLabel()
         self.solution_info.setWordWrap(True)
-        self.solution_info.setStyleSheet("padding: 10px; background-color: #e8f5e9; border-radius: 5px; color: #1b5e20;")
+        self.solution_info.setMinimumHeight(110)
+        self.solution_info.setStyleSheet("padding: 14px; background-color: #e8f5e9; border-radius: 5px; color: #1b5e20; font-size: 13px;")
         results_layout.addWidget(self.solution_info)
         self.iter_table = QTableWidget()
         self.iter_table.setColumnCount(4)
         self.iter_table.setHorizontalHeaderLabels(["Итерация", "x", "f(x)", "Погрешность"])
         self.iter_table.setAlternatingRowColors(True)
-        results_layout.addWidget(self.iter_table)
+        self.iter_table.setMinimumHeight(460)
+        self.iter_table.verticalHeader().setVisible(False)
+        self.iter_table.verticalHeader().setDefaultSectionSize(38)
+        self.iter_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        results_layout.addWidget(self.iter_table, 1)
         self.tab_widget.addTab(self.results_tab, "Результаты")
         
         self.convergence_tab = QWidget()
@@ -518,6 +519,24 @@ class MainWindow(QMainWindow):
         self.convergence_graph = ConvergenceGraph(self)
         conv_layout.addWidget(self.convergence_graph)
         self.tab_widget.addTab(self.convergence_tab, "График сходимости")
+
+        self.analysis_tab = QWidget()
+        analysis_layout = QVBoxLayout(self.analysis_tab)
+        self.analysis_text = QTextEdit()
+        self.analysis_text.setReadOnly(True)
+        self.analysis_text.setMinimumHeight(520)
+        self.analysis_text.setStyleSheet("""
+            QTextEdit {
+                font-size: 12px;
+                background-color: white;
+                color: black;
+                border: 2px solid #ccc;
+                border-radius: 10px;
+                padding: 15px;
+            }
+        """)
+        analysis_layout.addWidget(self.analysis_text)
+        self.tab_widget.addTab(self.analysis_tab, "Анализ точности")
         
         main_layout.addWidget(self.tab_widget, 1)
         
@@ -702,6 +721,7 @@ class MainWindow(QMainWindow):
         self.iter_table.resizeColumnsToContents()
         
         self.convergence_graph.plot_convergence(history, tol)
+        self.analysis_text.setHtml(self.build_analysis_html(method, root, history, converged, tol))
         
         # Обновить график с итерациями
         try:
@@ -713,6 +733,70 @@ class MainWindow(QMainWindow):
         
         self.tab_widget.setCurrentIndex(1)
         self.statusBar().showMessage(f"Решение завершено. Итераций: {iters}")
+
+    def build_analysis_html(self, method, root, history, converged, tolerance):
+        residual = abs(self.solver.f(root))
+        errors = [h['error'] for h in history if h['error'] is not None]
+        initial_error = errors[0] if errors else 0.0
+        final_error = errors[-1] if errors else 0.0
+        ratio = final_error / initial_error if initial_error else 0.0
+        status_color = "#4CAF50" if converged else "#f44336"
+        status_text = "ДОСТИГНУТА" if converged else "НЕ ДОСТИГНУТА"
+
+        rows = []
+        for h in history[:40]:
+            fx = h['fx'] if h['fx'] is not None else self.solver.f(h['x'])
+            error = h['error']
+            error_text = f"{error:.2e}" if error is not None else "—"
+            rows.append(f"""
+                <tr>
+                    <td>{h['iteration']}</td>
+                    <td>{h['x']:.10f}</td>
+                    <td>{fx:.2e}</td>
+                    <td>{error_text}</td>
+                </tr>
+            """)
+
+        derivative_block = ""
+        if method == "Метод Ньютона":
+            fprime = self.solver.f_prime(root)
+            derivative_block = f"""
+                <p>Проверка условия около корня: f'(x*) = <b>{fprime:.6e}</b>.
+                Если производная не близка к нулю, шаг Ньютона в окрестности корня устойчивее.</p>
+            """
+        elif self.solver.phi_expr is not None:
+            cond = self.solver.check_convergence_condition(root)
+            if cond is not None:
+                derivative_block = f"""
+                    <p>Для простой итерации проверяется |φ'(x*)| = <b>{cond:.6f}</b>.
+                    Значение меньше 1 означает локальную сходимость.</p>
+                """
+
+        return f"""
+        <html><body style="font-family: Arial, sans-serif; background:#f0f2f5; padding:18px;">
+            <div style="background:white; border-radius:12px; padding:18px; border:1px solid #ddd; margin-bottom:16px;">
+                <h2 style="margin-top:0;">Итог проверки корня</h2>
+                <p style="font-size:18px; color:{status_color};"><b>Точность {status_text}</b></p>
+                <p>Найденный корень: <b>x = {root:.12f}</b></p>
+                <p>Главная проверка: <b>|f(x)| = {residual:.2e}</b></p>
+                <p>Заданная точность: <b>{tolerance:.2e}</b></p>
+                {derivative_block}
+            </div>
+            <div style="background:white; border-radius:12px; padding:18px; border:1px solid #ddd; margin-bottom:16px;">
+                <h2 style="margin-top:0;">Анализ итерационной ошибки</h2>
+                <p>Начальная зафиксированная поправка: <b>{initial_error:.2e}</b></p>
+                <p>Последняя поправка: <b>{final_error:.2e}</b></p>
+                <p>Отношение последней поправки к первой: <b>{ratio:.2e}</b></p>
+            </div>
+            <div style="background:white; border-radius:12px; padding:18px; border:1px solid #ddd;">
+                <h2 style="margin-top:0;">Таблица проверки по шагам</h2>
+                <table border="1" cellspacing="0" cellpadding="8" style="border-collapse:collapse; width:100%;">
+                    <tr style="background:#2196F3; color:white;"><th>Итерация</th><th>x</th><th>f(x)</th><th>|xₖ₊₁-xₖ|</th></tr>
+                    {''.join(rows)}
+                </table>
+            </div>
+        </body></html>
+        """
 
     def show_numpy_check(self):
         if not hasattr(self, 'current_root') or self.solver.f_expr is None:
@@ -775,6 +859,7 @@ class MainWindow(QMainWindow):
         self.convergence_graph.axes.clear()
         self.convergence_graph.draw()
         self.current_history = []
+        self.analysis_text.clear()
         self.numpy_check_btn.setEnabled(False)
         self.statusBar().showMessage("Очищено")
 

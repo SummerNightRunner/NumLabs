@@ -90,7 +90,7 @@ class InterpolationGraph(FigureCanvas):
     """График исходной функции и интерполяционных многочленов"""
     
     def __init__(self, parent=None):
-        self.figure = Figure(figsize=(9, 6), dpi=100)
+        self.figure = Figure(figsize=(11, 7), dpi=100)
         self.figure.set_facecolor('#f5f5f5')
         super().__init__(self.figure)
         self.setParent(parent)
@@ -100,7 +100,7 @@ class InterpolationGraph(FigureCanvas):
         self.axes.set_xlabel('x')
         self.axes.set_ylabel('y')
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.setMinimumHeight(400)
+        self.setMinimumHeight(560)
         
     def plot(self, f_lambdified, x_points, y_points, L_expr, N_expr, x_range=None, x_star=None):
         self.axes.clear()
@@ -146,9 +146,9 @@ class InterpolationGraph(FigureCanvas):
                 pass
         
         self.axes.grid(True, linestyle='--', alpha=0.7)
-        self.axes.set_xlabel('x')
-        self.axes.set_ylabel('y')
-        self.axes.set_title('Интерполяционные многочлены')
+        self.axes.set_xlabel('x', fontsize=12)
+        self.axes.set_ylabel('y', fontsize=12)
+        self.axes.set_title('Интерполяционные многочлены', fontsize=14, fontweight='bold')
         self.axes.legend(loc='best')
         self.figure.tight_layout()
         self.draw()
@@ -162,20 +162,20 @@ class MainWindow(QMainWindow):
         
     def init_ui(self):
         self.setWindowTitle("Интерполяция многочленами Лагранжа и Ньютона")
-        self.setGeometry(100, 100, 1400, 950)
+        self.setGeometry(70, 50, 1450, 1000)
         
         self.setStyleSheet("""
             QMainWindow { background-color: #f5f5f5; }
-            QPushButton { background-color: #2196F3; color: white; border: none; padding: 10px 20px; border-radius: 5px; font-size: 13px; font-weight: bold; }
+            QPushButton { background-color: #2196F3; color: white; border: none; padding: 11px 20px; border-radius: 5px; font-size: 13px; font-weight: bold; }
             QPushButton:hover { background-color: #1976D2; }
             QGroupBox { font-weight: bold; border: 2px solid #cccccc; border-radius: 8px; margin-top: 20px; padding-top: 15px; background-color: white; }
             QGroupBox::title { subcontrol-origin: margin; left: 20px; padding: 0 10px; color: #2196F3; background-color: white; }
             QLabel { font-size: 12px; color: #333333; }
             QLineEdit { padding: 8px; border: 2px solid #cccccc; border-radius: 5px; font-size: 12px; background-color: white; color: #000000; }
             QLineEdit:focus { border: 2px solid #2196F3; }
-            QTableWidget { gridline-color: #dddddd; font-size: 12px; background-color: white; alternate-background-color: #f9f9f9; }
-            QTableWidget::item { color: #000000; }
-            QHeaderView::section { background-color: #2196F3; color: white; padding: 8px; font-weight: bold; }
+            QTableWidget { gridline-color: #dddddd; font-size: 14px; background-color: white; alternate-background-color: #f9f9f9; }
+            QTableWidget::item { color: #000000; padding: 8px; }
+            QHeaderView::section { background-color: #2196F3; color: white; padding: 10px; font-weight: bold; font-size: 13px; }
             QTabWidget::pane { border: 1px solid #cccccc; background: white; border-radius: 5px; }
             QTabBar::tab { background-color: #e0e0e0; padding: 8px 16px; margin: 2px; border-radius: 5px; color: #000000; }
             QTabBar::tab:selected { background-color: #2196F3; color: white; }
@@ -185,6 +185,7 @@ class MainWindow(QMainWindow):
         main_layout = QVBoxLayout(central_widget)
         main_layout.setSpacing(15)
         main_layout.setContentsMargins(15, 15, 15, 15)
+        central_widget.setMinimumWidth(1100)
         
         title = QLabel("Интерполяция многочленами Лагранжа и Ньютона по 4 точкам")
         title.setFont(QFont("Arial", 16, QFont.Bold))
@@ -204,6 +205,7 @@ class MainWindow(QMainWindow):
         main_layout.addWidget(func_group)
         
         self.task_tabs = QTabWidget()
+        self.task_tabs.setMinimumHeight(260)
         
         self.task_a_tab = QWidget()
         self.setup_task_a()
@@ -242,10 +244,31 @@ class MainWindow(QMainWindow):
         results_layout = QVBoxLayout()
         self.results_text = QTextEdit()
         self.results_text.setReadOnly(True)
-        self.results_text.setStyleSheet("background-color: white; color: #000000;")
+        self.results_text.setMinimumHeight(260)
+        self.results_text.setFont(QFont("Courier New", 11))
+        self.results_text.setStyleSheet("background-color: white; color: #000000; padding: 10px;")
         results_layout.addWidget(self.results_text)
         results_group.setLayout(results_layout)
         main_layout.addWidget(results_group)
+
+        analysis_group = QGroupBox("Анализ точности")
+        analysis_layout = QVBoxLayout()
+        self.analysis_text = QTextEdit()
+        self.analysis_text.setReadOnly(True)
+        self.analysis_text.setMinimumHeight(300)
+        self.analysis_text.setStyleSheet("""
+            QTextEdit {
+                font-size: 12px;
+                background-color: white;
+                color: black;
+                border: 2px solid #ccc;
+                border-radius: 10px;
+                padding: 15px;
+            }
+        """)
+        analysis_layout.addWidget(self.analysis_text)
+        analysis_group.setLayout(analysis_layout)
+        main_layout.addWidget(analysis_group)
         
         btn_layout = QHBoxLayout()
         self.calc_a_btn = QPushButton("Вычислить для задачи (а)")
@@ -284,6 +307,10 @@ class MainWindow(QMainWindow):
         self.table_a.setColumnCount(2)
         self.table_a.setHorizontalHeaderLabels(["Xi", "Yi = f(Xi)"])
         self.table_a.setAlternatingRowColors(True)
+        self.table_a.setMinimumHeight(180)
+        self.table_a.verticalHeader().setVisible(False)
+        self.table_a.verticalHeader().setDefaultSectionSize(36)
+        self.table_a.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         layout.addWidget(self.table_a)
         layout.addStretch()
         self.task_a_tab.setLayout(layout)
@@ -306,6 +333,10 @@ class MainWindow(QMainWindow):
         self.table_b.setColumnCount(2)
         self.table_b.setHorizontalHeaderLabels(["Xi", "Yi = f(Xi)"])
         self.table_b.setAlternatingRowColors(True)
+        self.table_b.setMinimumHeight(180)
+        self.table_b.verticalHeader().setVisible(False)
+        self.table_b.verticalHeader().setDefaultSectionSize(36)
+        self.table_b.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         layout.addWidget(self.table_b)
         layout.addStretch()
         self.task_b_tab.setLayout(layout)
@@ -418,10 +449,87 @@ class MainWindow(QMainWindow):
         self.current_x_points = x_vals
         self.current_y_points = y_vals
         self.current_x_star = x_star
+        self.analysis_text.setHtml(self.build_analysis_html(x_vals, y_vals, L_expr, N_expr, x_star))
         self.numpy_check_btn.setEnabled(True)
         self.update_graph()
         
         self.statusBar().showMessage(f"Вычисление для задачи ({task}) завершено")
+
+    def build_analysis_html(self, x_vals, y_vals, L_expr, N_expr, x_star):
+        x = self.solver.x_sym
+        L_func = sp.lambdify(x, L_expr, modules=['numpy', 'math'])
+        N_func = sp.lambdify(x, N_expr, modules=['numpy', 'math'])
+        diff_expr = sp.simplify(L_expr - N_expr)
+        node_rows = []
+        max_node_error = 0.0
+
+        for xi, yi in zip(x_vals, y_vals):
+            p_val = float(L_func(xi))
+            err = abs(p_val - yi)
+            max_node_error = max(max_node_error, err)
+            node_rows.append(f"""
+                <tr>
+                    <td>{xi:.10f}</td>
+                    <td>{yi:.10f}</td>
+                    <td>{p_val:.10f}</td>
+                    <td>{err:.2e}</td>
+                </tr>
+            """)
+
+        compare_points = np.linspace(min(x_vals), max(x_vals), 9)
+        compare_rows = []
+        max_ln_diff = 0.0
+        for point in compare_points:
+            l_val = float(L_func(point))
+            n_val = float(N_func(point))
+            diff = abs(l_val - n_val)
+            max_ln_diff = max(max_ln_diff, diff)
+            compare_rows.append(f"""
+                <tr>
+                    <td>{point:.10f}</td>
+                    <td>{l_val:.10f}</td>
+                    <td>{n_val:.10f}</td>
+                    <td>{diff:.2e}</td>
+                </tr>
+            """)
+
+        xstar_block = ""
+        if x_star is not None:
+            f_star = float(self.solver.f_lambdified(x_star))
+            p_star = float(L_func(x_star))
+            xstar_block = f"""
+                <div style="background:white; border-radius:12px; padding:18px; border:1px solid #ddd; margin-bottom:16px;">
+                    <h2 style="margin-top:0;">Проверка в точке X*</h2>
+                    <p>X* = <b>{x_star:.12f}</b></p>
+                    <p>f(X*) = <b>{f_star:.12f}</b></p>
+                    <p>P(X*) = <b>{p_star:.12f}</b></p>
+                    <p>|f(X*) - P(X*)| = <b>{abs(f_star - p_star):.2e}</b></p>
+                </div>
+            """
+
+        return f"""
+        <html><body style="font-family: Arial, sans-serif; background:#f0f2f5; padding:18px;">
+            <div style="background:white; border-radius:12px; padding:18px; border:1px solid #ddd; margin-bottom:16px;">
+                <h2 style="margin-top:0;">Проверка интерполяционных узлов</h2>
+                <p>Интерполяционный многочлен обязан проходить через все заданные точки.</p>
+                <p>Максимальная ошибка в узлах: <b>{max_node_error:.2e}</b></p>
+                <table border="1" cellspacing="0" cellpadding="8" style="border-collapse:collapse; width:100%;">
+                    <tr style="background:#2196F3; color:white;"><th>Xi</th><th>Yi</th><th>P(Xi)</th><th>|P(Xi)-Yi|</th></tr>
+                    {''.join(node_rows)}
+                </table>
+            </div>
+            <div style="background:white; border-radius:12px; padding:18px; border:1px solid #ddd; margin-bottom:16px;">
+                <h2 style="margin-top:0;">Проверка Лагранжа и Ньютона</h2>
+                <p>Разность в символьном виде: <b>L(x) - N(x) = {diff_expr}</b></p>
+                <p>Максимальная разница на контрольной сетке: <b>{max_ln_diff:.2e}</b></p>
+                <table border="1" cellspacing="0" cellpadding="8" style="border-collapse:collapse; width:100%;">
+                    <tr style="background:#4CAF50; color:white;"><th>x</th><th>L(x)</th><th>N(x)</th><th>|L-N|</th></tr>
+                    {''.join(compare_rows)}
+                </table>
+            </div>
+            {xstar_block}
+        </body></html>
+        """
 
     def show_numpy_check(self):
         if not getattr(self, 'current_x_points', None) or getattr(self, 'current_L', None) is None:
@@ -492,6 +600,7 @@ class MainWindow(QMainWindow):
         self.table_a.setRowCount(0)
         self.table_b.setRowCount(0)
         self.results_text.clear()
+        self.analysis_text.clear()
         self.current_L = None
         self.current_N = None
         self.current_x_points = []

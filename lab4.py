@@ -430,6 +430,10 @@ class ResultsWidget(QWidget):
         self.setup_eigenvectors_tab()
         self.tab_widget.addTab(self.eigenvectors_tab, "Собственные векторы")
 
+        self.visual_check_tab = QWidget()
+        self.setup_visual_check_tab()
+        self.tab_widget.addTab(self.visual_check_tab, "Проверка A·v=λv")
+
         self.convergence_tab = QWidget()
         self.setup_convergence_tab()
         self.tab_widget.addTab(self.convergence_tab, "Сходимость")
@@ -528,6 +532,31 @@ class ResultsWidget(QWidget):
         layout.addStretch()
         self.eigenvectors_tab.setLayout(layout)
 
+    def setup_visual_check_tab(self):
+        layout = QVBoxLayout()
+
+        title = QLabel("Наглядная проверка собственных пар")
+        title.setFont(QFont("Arial", 14, QFont.Bold))
+        title.setAlignment(Qt.AlignCenter)
+        title.setStyleSheet("color: #333; margin: 10px;")
+        layout.addWidget(title)
+
+        self.visual_check_text = QTextEdit()
+        self.visual_check_text.setReadOnly(True)
+        self.visual_check_text.setMinimumHeight(520)
+        self.visual_check_text.setStyleSheet("""
+            QTextEdit {
+                font-size: 12px;
+                background-color: white;
+                color: black;
+                border: 2px solid #ccc;
+                border-radius: 10px;
+                padding: 15px;
+            }
+        """)
+        layout.addWidget(self.visual_check_text)
+        self.visual_check_tab.setLayout(layout)
+
     def setup_convergence_tab(self):
         layout = QVBoxLayout()
 
@@ -607,7 +636,7 @@ class ResultsWidget(QWidget):
 
         self.analysis_tab.setLayout(layout)
 
-    def display_results(self, eigenvalues, eigenvectors, iterations, errors, tolerance, verification_error):
+    def display_results(self, A, eigenvalues, eigenvectors, iterations, errors, tolerance, verification_error):
         n = len(eigenvalues)
         self.eigenvalues_table.setRowCount(n)
 
@@ -703,8 +732,53 @@ class ResultsWidget(QWidget):
                 self.convergence_table.setItem(i, 3, QTableWidgetItem("Начало"))
 
         self.convergence_table.resizeColumnsToContents()
+        self.visual_check_text.setHtml(self.build_visual_check_html(A, eigenvalues, eigenvectors))
         analysis = self.analyze_convergence_html(errors, iterations, tolerance, verification_error)
         self.analysis_text.setHtml(analysis)
+
+    def build_visual_check_html(self, A, eigenvalues, eigenvectors):
+        def fmt_vec(vec):
+            return "[" + "; ".join(f"{x:.8f}" for x in vec) + "]"
+
+        rows = []
+        max_residual = 0.0
+        for i, value in enumerate(eigenvalues):
+            v = eigenvectors[:, i]
+            av = A @ v
+            lv = value * v
+            diff = av - lv
+            residual = np.linalg.norm(diff)
+            max_residual = max(max_residual, residual)
+            color = "#2e7d32" if residual < 1e-8 else "#ef6c00"
+            rows.append(f"""
+                <tr>
+                    <td>λ{i+1} = {value:.10f}</td>
+                    <td><code>{fmt_vec(v)}</code></td>
+                    <td><code>{fmt_vec(av)}</code></td>
+                    <td><code>{fmt_vec(lv)}</code></td>
+                    <td style="color:{color}; font-weight:bold;">{residual:.2e}</td>
+                </tr>
+            """)
+
+        return f"""
+        <html><body style="font-family: Arial, sans-serif; background:#f0f2f5; padding:16px;">
+            <div style="background:white; border-radius:12px; padding:18px; border:1px solid #ddd;">
+                <h2 style="margin-top:0;">Проверка равенства A·v = λ·v</h2>
+                <p>Для каждой найденной пары считаем левую часть <b>A·v</b>, правую часть <b>λ·v</b> и норму их разности.</p>
+                <p style="font-size:16px;"><b>Максимальная невязка:</b> {max_residual:.2e}</p>
+                <table border="1" cellspacing="0" cellpadding="8" style="border-collapse:collapse; width:100%; background:white;">
+                    <tr style="background:#4CAF50; color:white;">
+                        <th>Собственное значение</th>
+                        <th>v</th>
+                        <th>A·v</th>
+                        <th>λ·v</th>
+                        <th>||A·v - λ·v||</th>
+                    </tr>
+                    {''.join(rows)}
+                </table>
+            </div>
+        </body></html>
+        """
 
     def analyze_convergence_html(self, errors, iterations, tolerance, verification_error):
         final_error = errors[-1] if errors else 0.0
@@ -1087,7 +1161,7 @@ class MainWindow(QMainWindow):
             self.last_tolerance = tolerance
 
             self.results_widget.display_results(
-                eigenvalues, eigenvectors, iterations, errors, tolerance, verification_error
+                self.A, eigenvalues, eigenvectors, iterations, errors, tolerance, verification_error
             )
             self.numpy_check_button.setEnabled(True)
 
@@ -1139,6 +1213,7 @@ class MainWindow(QMainWindow):
         self.results_widget.convergence_table.setRowCount(0)
         self.results_widget.iter_info.setText("")
         self.results_widget.verification_info.setText("")
+        self.results_widget.visual_check_text.clear()
         self.results_widget.analysis_text.clear()
         self.results_widget.figure.clear()
         self.results_widget.canvas.draw()

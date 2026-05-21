@@ -221,7 +221,7 @@ class SystemSolver:
 
 class SystemGraph(FigureCanvas):
     def __init__(self, parent=None):
-        self.figure = Figure(figsize=(8, 6), dpi=100)
+        self.figure = Figure(figsize=(10, 7), dpi=100)
         self.figure.set_facecolor('#f5f5f5')
         super().__init__(self.figure)
         self.setParent(parent)
@@ -231,7 +231,7 @@ class SystemGraph(FigureCanvas):
         self.axes.set_xlabel('x')
         self.axes.set_ylabel('y')
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.setMinimumHeight(400)
+        self.setMinimumHeight(560)
         self.mpl_connect('button_press_event', self.on_click)
         self.click_callback = None
         
@@ -282,7 +282,7 @@ class SystemGraph(FigureCanvas):
 
 class ConvergenceGraph(FigureCanvas):
     def __init__(self, parent=None):
-        self.figure = Figure(figsize=(8, 4), dpi=100)
+        self.figure = Figure(figsize=(10, 5), dpi=100)
         self.figure.set_facecolor('#f5f5f5')
         super().__init__(self.figure)
         self.setParent(parent)
@@ -292,7 +292,7 @@ class ConvergenceGraph(FigureCanvas):
         self.axes.set_xlabel('Номер итерации')
         self.axes.set_ylabel('Погрешность')
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.setMinimumHeight(250)
+        self.setMinimumHeight(420)
         
     def plot_convergence(self, history, tolerance):
         self.axes.clear()
@@ -309,9 +309,9 @@ class ConvergenceGraph(FigureCanvas):
         self.axes.semilogy(iterations, errors, 'b-o', linewidth=2, markersize=4, label='Погрешность')
         self.axes.axhline(y=tolerance, color='r', linestyle='--', linewidth=1.5, label=f'Точность ({tolerance:.1e})')
         self.axes.grid(True, linestyle='--', alpha=0.7)
-        self.axes.set_xlabel('Номер итерации', fontsize=10)
-        self.axes.set_ylabel('Погрешность', fontsize=10)
-        self.axes.set_title('Зависимость погрешности от номера итерации', fontsize=12, fontweight='bold')
+        self.axes.set_xlabel('Номер итерации', fontsize=12)
+        self.axes.set_ylabel('Погрешность', fontsize=12)
+        self.axes.set_title('Зависимость погрешности от номера итерации', fontsize=14, fontweight='bold')
         self.axes.legend(loc='upper right', fontsize=9)
         if len(iterations) > 1:
             self.axes.set_xlim(1, iterations[-1])
@@ -328,19 +328,19 @@ class MainWindow(QMainWindow):
         
     def init_ui(self):
         self.setWindowTitle("Решение систем нелинейных уравнений")
-        self.setGeometry(100, 100, 1450, 950)
+        self.setGeometry(70, 50, 1450, 1000)
         self.setStyleSheet("""
             QMainWindow { background-color: #f5f5f5; }
-            QPushButton { background-color: #2196F3; color: white; border: none; padding: 10px 20px; border-radius: 5px; font-size: 13px; font-weight: bold; }
+            QPushButton { background-color: #2196F3; color: white; border: none; padding: 11px 20px; border-radius: 5px; font-size: 13px; font-weight: bold; }
             QPushButton:hover { background-color: #1976D2; }
             QGroupBox { font-weight: bold; border: 2px solid #cccccc; border-radius: 8px; margin-top: 20px; padding-top: 15px; background-color: white; }
             QGroupBox::title { subcontrol-origin: margin; left: 20px; padding: 0 10px; color: #2196F3; background-color: white; }
             QLabel { font-size: 12px; color: #333333; }
             QLineEdit { padding: 8px; border: 2px solid #cccccc; border-radius: 5px; font-size: 12px; background-color: white; color: #000000; }
             QLineEdit:focus { border: 2px solid #2196F3; }
-            QTableWidget { gridline-color: #dddddd; font-size: 12px; background-color: white; alternate-background-color: #f9f9f9; }
-            QTableWidget::item { color: #000000; }
-            QHeaderView::section { background-color: #2196F3; color: white; padding: 8px; font-weight: bold; }
+            QTableWidget { gridline-color: #dddddd; font-size: 14px; background-color: white; alternate-background-color: #f9f9f9; }
+            QTableWidget::item { color: #000000; padding: 8px; }
+            QHeaderView::section { background-color: #2196F3; color: white; padding: 10px; font-weight: bold; font-size: 13px; }
             QComboBox { padding: 6px; border: 2px solid #cccccc; border-radius: 5px; background-color: white; color: #000000; }
             QTabWidget::pane { border: 1px solid #cccccc; background: white; border-radius: 5px; }
             QTabBar::tab { background-color: #e0e0e0; padding: 8px 16px; margin: 2px; border-radius: 5px; color: #000000; }
@@ -350,6 +350,7 @@ class MainWindow(QMainWindow):
         main_layout = QVBoxLayout(central_widget)
         main_layout.setSpacing(15)
         main_layout.setContentsMargins(15, 15, 15, 15)
+        central_widget.setMinimumWidth(1120)
         
         title = QLabel("Решение систем нелинейных уравнений (Ньютон и простая итерация)")
         title.setFont(QFont("Arial", 16, QFont.Bold))
@@ -471,6 +472,7 @@ class MainWindow(QMainWindow):
         main_layout.addWidget(input_group)
         
         self.tab_widget = QTabWidget()
+        self.tab_widget.setMinimumHeight(760)
         
         self.graph_tab = QWidget()
         graph_layout = QVBoxLayout(self.graph_tab)
@@ -496,7 +498,7 @@ class MainWindow(QMainWindow):
         
         self.system_graph = SystemGraph(self)
         self.system_graph.click_callback = self.on_graph_click
-        graph_layout.addWidget(self.system_graph)
+        graph_layout.addWidget(self.system_graph, 1)
         info_label = QLabel("Кликните по графику для выбора начального приближения")
         info_label.setAlignment(Qt.AlignCenter)
         info_label.setStyleSheet("color: #555555; font-style: italic;")
@@ -507,13 +509,18 @@ class MainWindow(QMainWindow):
         results_layout = QVBoxLayout(self.results_tab)
         self.solution_info = QLabel("Результаты будут отображены здесь")
         self.solution_info.setWordWrap(True)
-        self.solution_info.setStyleSheet("padding: 10px; background-color: #e8f5e9; border-radius: 5px; color: #1b5e20;")
+        self.solution_info.setMinimumHeight(110)
+        self.solution_info.setStyleSheet("padding: 14px; background-color: #e8f5e9; border-radius: 5px; color: #1b5e20; font-size: 13px;")
         results_layout.addWidget(self.solution_info)
         self.iter_table = QTableWidget()
         self.iter_table.setColumnCount(5)
         self.iter_table.setHorizontalHeaderLabels(["Итерация", "x", "y", "||F||", "Погрешность"])
         self.iter_table.setAlternatingRowColors(True)
-        results_layout.addWidget(self.iter_table)
+        self.iter_table.setMinimumHeight(480)
+        self.iter_table.verticalHeader().setVisible(False)
+        self.iter_table.verticalHeader().setDefaultSectionSize(38)
+        self.iter_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        results_layout.addWidget(self.iter_table, 1)
         self.tab_widget.addTab(self.results_tab, "Результаты")
         
         self.convergence_tab = QWidget()
@@ -521,6 +528,24 @@ class MainWindow(QMainWindow):
         self.convergence_graph = ConvergenceGraph(self)
         conv_layout.addWidget(self.convergence_graph)
         self.tab_widget.addTab(self.convergence_tab, "Сходимость")
+
+        self.analysis_tab = QWidget()
+        analysis_layout = QVBoxLayout(self.analysis_tab)
+        self.analysis_text = QTextEdit()
+        self.analysis_text.setReadOnly(True)
+        self.analysis_text.setMinimumHeight(540)
+        self.analysis_text.setStyleSheet("""
+            QTextEdit {
+                font-size: 12px;
+                background-color: white;
+                color: black;
+                border: 2px solid #ccc;
+                border-radius: 10px;
+                padding: 15px;
+            }
+        """)
+        analysis_layout.addWidget(self.analysis_text)
+        self.tab_widget.addTab(self.analysis_tab, "Анализ точности")
         
         main_layout.addWidget(self.tab_widget, 1)
         
@@ -694,6 +719,7 @@ class MainWindow(QMainWindow):
         self.iter_table.resizeColumnsToContents()
         
         self.convergence_graph.plot_convergence(history, tol)
+        self.analysis_text.setHtml(self.build_analysis_html(method, rx, ry, a, history, conv, tol))
         
         try:
             a = float(self.a_edit.text())
@@ -706,6 +732,72 @@ class MainWindow(QMainWindow):
         
         self.tab_widget.setCurrentIndex(1)
         self.statusBar().showMessage(f"Завершено. Итераций: {iters}")
+
+    def build_analysis_html(self, method, rx, ry, a, history, converged, tolerance):
+        F_val = self.solver.F(rx, ry, a)
+        J_val = self.solver.J(rx, ry, a)
+        norm_f = np.linalg.norm(F_val) if F_val is not None else float('nan')
+        errors = [h['error'] for h in history if h['error'] is not None]
+        initial_error = errors[0] if errors else 0.0
+        final_error = errors[-1] if errors else 0.0
+        ratio = final_error / initial_error if initial_error else 0.0
+        status_color = "#4CAF50" if converged else "#f44336"
+        status_text = "ДОСТИГНУТА" if converged else "НЕ ДОСТИГНУТА"
+
+        try:
+            delta = np.linalg.solve(J_val, -F_val)
+            delta_text = np.array2string(delta, precision=8)
+            delta_norm = np.linalg.norm(delta)
+        except Exception:
+            delta_text = "не вычислена"
+            delta_norm = float('nan')
+
+        rows = []
+        for h in history[:40]:
+            error = h['error']
+            error_text = f"{error:.2e}" if error is not None else "—"
+            fn = h['F_norm']
+            fn_text = f"{fn:.2e}" if fn is not None else "—"
+            rows.append(f"""
+                <tr>
+                    <td>{h['iteration']}</td>
+                    <td>{h['x']:.10f}</td>
+                    <td>{h['y']:.10f}</td>
+                    <td>{fn_text}</td>
+                    <td>{error_text}</td>
+                </tr>
+            """)
+
+        return f"""
+        <html><body style="font-family: Arial, sans-serif; background:#f0f2f5; padding:18px;">
+            <div style="background:white; border-radius:12px; padding:18px; border:1px solid #ddd; margin-bottom:16px;">
+                <h2 style="margin-top:0;">Итог проверки системы</h2>
+                <p style="font-size:18px; color:{status_color};"><b>Точность {status_text}</b></p>
+                <p>Найденная точка: <b>x = {rx:.12f}, y = {ry:.12f}</b></p>
+                <p>Главная проверка: <b>||F(x,y)|| = {norm_f:.2e}</b></p>
+                <p>Заданная точность: <b>{tolerance:.2e}</b></p>
+            </div>
+            <div style="background:white; border-radius:12px; padding:18px; border:1px solid #ddd; margin-bottom:16px;">
+                <h2 style="margin-top:0;">Контроль через линейную систему</h2>
+                <p>В найденной точке можно решить <b>J·Δ = -F</b>. Если решение уже точное, поправка Δ должна быть почти нулевой.</p>
+                <p>Δ = <b>{delta_text}</b></p>
+                <p>||Δ|| = <b>{delta_norm:.2e}</b></p>
+            </div>
+            <div style="background:white; border-radius:12px; padding:18px; border:1px solid #ddd; margin-bottom:16px;">
+                <h2 style="margin-top:0;">Анализ итерационной ошибки</h2>
+                <p>Начальная поправка: <b>{initial_error:.2e}</b></p>
+                <p>Последняя поправка: <b>{final_error:.2e}</b></p>
+                <p>Отношение последней поправки к первой: <b>{ratio:.2e}</b></p>
+            </div>
+            <div style="background:white; border-radius:12px; padding:18px; border:1px solid #ddd;">
+                <h2 style="margin-top:0;">Таблица проверки по шагам</h2>
+                <table border="1" cellspacing="0" cellpadding="8" style="border-collapse:collapse; width:100%;">
+                    <tr style="background:#2196F3; color:white;"><th>Итерация</th><th>x</th><th>y</th><th>||F||</th><th>||Δ||</th></tr>
+                    {''.join(rows)}
+                </table>
+            </div>
+        </body></html>
+        """
 
     def show_numpy_check(self):
         if not hasattr(self, 'current_solution'):
@@ -767,6 +859,7 @@ class MainWindow(QMainWindow):
         self.convergence_graph.axes.clear()
         self.convergence_graph.draw()
         self.current_history = []
+        self.analysis_text.clear()
         self.numpy_check_btn.setEnabled(False)
         self.statusBar().showMessage("Очищено")
 
