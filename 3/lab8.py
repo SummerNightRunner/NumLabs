@@ -10,7 +10,6 @@ from matplotlib.figure import Figure
 
 
 class InterpolationSolver:
-    """Класс для вычисления интерполяционных многочленов Лагранжа и Ньютона"""
     
     def __init__(self):
         self.x_sym = sp.Symbol('x')
@@ -18,7 +17,6 @@ class InterpolationSolver:
         self.f_lambdified = None
         
     def set_function(self, f_str):
-        """Установка функции y = f(x)"""
         try:
             local_dict = {
                 'pi': sp.pi,
@@ -37,7 +35,6 @@ class InterpolationSolver:
             return False, str(e)
     
     def evaluate_function(self, x_vals):
-        """Вычисление значений функции в точках x_vals"""
         try:
             y_vals = [float(self.f_lambdified(x)) for x in x_vals]
             return y_vals
@@ -45,7 +42,6 @@ class InterpolationSolver:
             return None
     
     def lagrange_polynomial(self, x_points, y_points):
-        """Построение многочлена Лагранжа в символьном виде"""
         n = len(x_points)
         x = self.x_sym
         L = 0
@@ -58,7 +54,6 @@ class InterpolationSolver:
         return sp.simplify(L)
     
     def newton_polynomial(self, x_points, y_points):
-        """Построение многочлена Ньютона с разделёнными разностями"""
         n = len(x_points)
         x = self.x_sym
         div_diff = [[0]*n for _ in range(n)]
@@ -76,7 +71,6 @@ class InterpolationSolver:
         return sp.simplify(N)
     
     def interpolation_error(self, x_star, x_points, y_points, poly_expr):
-        """Вычисление погрешности интерполяции: |f(x*) - P(x*)|"""
         try:
             f_star = float(self.f_lambdified(x_star))
             poly_lambdified = sp.lambdify(self.x_sym, poly_expr, modules=['numpy', 'math'])
@@ -87,7 +81,6 @@ class InterpolationSolver:
 
 
 class InterpolationGraph(FigureCanvas):
-    """График исходной функции и интерполяционных многочленов"""
     
     def __init__(self, parent=None):
         self.figure = Figure(figsize=(11, 7), dpi=100)
